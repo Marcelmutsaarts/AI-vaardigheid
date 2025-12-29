@@ -18,7 +18,8 @@ import {
   HelpCircle,
   RotateCcw,
   Check,
-  X
+  X,
+  Send
 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import {
@@ -101,8 +102,9 @@ export default function I2Page() {
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[] | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
 
-  // Uitvoer state
-  const [uitvoerResultaat, setUitvoerResultaat] = useState<string | null>(null)
+  // Uitvoer state - nu met chat functionaliteit
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
   const [uitvoerLoading, setUitvoerLoading] = useState(false)
 
   // Herschrijf state
@@ -110,6 +112,8 @@ export default function I2Page() {
   const [herschrijfLoading, setHerschrijfLoading] = useState(false)
 
   const resultaatRef = useRef<HTMLDivElement>(null)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     // MBO/HBO hebben geen leerjaar, VO niveaus wel
@@ -152,7 +156,8 @@ export default function I2Page() {
     // Reset states
     setPromptInput({ rol: '', context: '', instructies: '', voorbeeld: '' })
     setFeedbackItems(null)
-    setUitvoerResultaat(null)
+    setChatMessages([])
+    setChatInput('')
     setHerschrevenPrompt(null)
     setBijlageTekst('')
     setShowTekstModal(false)
@@ -162,7 +167,7 @@ export default function I2Page() {
     setPromptInput(prev => ({ ...prev, [field]: value }))
     // Reset feedback en resultaat als input verandert
     setFeedbackItems(null)
-    setUitvoerResultaat(null)
+    setChatMessages([])
     setHerschrevenPrompt(null)
   }
 
@@ -258,7 +263,7 @@ Regels voor feedback:
   // Daadwerkelijke uitvoering van de prompt
   const executePrompt = async (tekst?: string) => {
     setUitvoerLoading(true)
-    setUitvoerResultaat(null)
+    setChatMessages([])
     setShowTekstModal(false)
 
     try {
@@ -287,18 +292,73 @@ Regels voor feedback:
 
       if (response.ok) {
         const data = await response.json()
-        setUitvoerResultaat(data.reply)
+        // Sla de eerste prompt en reactie op als chat messages
+        setChatMessages([
+          { role: 'user', content: volledigePrompt },
+          { role: 'assistant', content: data.reply }
+        ])
         setPhase('resultaat')
         // Scroll naar resultaat
         setTimeout(() => {
           resultaatRef.current?.scrollIntoView({ behavior: 'smooth' })
+          chatInputRef.current?.focus()
         }, 100)
       }
     } catch (error) {
       console.error('Uitvoer error:', error)
-      setUitvoerResultaat('Er ging iets mis. Probeer het opnieuw.')
+      setChatMessages([{ role: 'assistant', content: 'Er ging iets mis. Probeer het opnieuw.' }])
     } finally {
       setUitvoerLoading(false)
+    }
+  }
+
+  // Vervolgbericht sturen in de chat
+  const handleChatSend = async () => {
+    if (!chatInput.trim() || uitvoerLoading) return
+
+    const userMessage = chatInput.trim()
+    setChatInput('')
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    setUitvoerLoading(true)
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          context: {
+            niveau: niveau.schoolType,
+            leerjaar: niveau.leerjaar,
+            currentModule: 'instrueren',
+            moduleContext: `De leerling test een zelfgeschreven prompt en chat door.`,
+            aiMode: 'doet',
+            conversationHistory: chatMessages
+          }
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+        // Scroll naar nieuwste bericht
+        setTimeout(() => {
+          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
+      }
+    } catch (error) {
+      console.error('Chat error:', error)
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Er ging iets mis. Probeer het opnieuw.' }])
+    } finally {
+      setUitvoerLoading(false)
+    }
+  }
+
+  // Enter toets afhandelen in chat input
+  const handleChatKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleChatSend()
     }
   }
 
@@ -386,7 +446,8 @@ Belangrijk:
     setGekozenRolId(null)
     setPromptInput({ rol: '', context: '', instructies: '', voorbeeld: '' })
     setFeedbackItems(null)
-    setUitvoerResultaat(null)
+    setChatMessages([])
+    setChatInput('')
     setHerschrevenPrompt(null)
     setBijlageTekst('')
     setShowTekstModal(false)
@@ -704,26 +765,83 @@ Belangrijk:
             </div>
           )}
 
-          {/* Resultaat */}
-          {uitvoerResultaat && (
-            <div ref={resultaatRef} className="bg-white rounded-xl border shadow-sm p-4 mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="text-lg">🤖</span> Resultaat
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap">
-                {uitvoerResultaat.split('\n').map((line, i) => (
-                  <span key={i}>
-                    {formatMarkdown(line)}
-                    {i < uitvoerResultaat.split('\n').length - 1 && '\n'}
-                  </span>
+          {/* Chat Resultaat */}
+          {chatMessages.length > 0 && (
+            <div ref={resultaatRef} className="bg-white rounded-xl border shadow-sm overflow-hidden mb-6">
+              <div className="p-4 border-b bg-gray-50">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <span className="text-lg">🤖</span> Chat met AI
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">Je kunt doorpraten om het resultaat te verbeteren</p>
+              </div>
+
+              {/* Chat berichten */}
+              <div className="max-h-[400px] overflow-y-auto p-4 space-y-3">
+                {chatMessages.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-2 ${
+                        msg.role === 'user'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">
+                        {msg.role === 'assistant'
+                          ? msg.content.split('\n').map((line, j) => (
+                              <span key={j}>
+                                {formatMarkdown(line)}
+                                {j < msg.content.split('\n').length - 1 && '\n'}
+                              </span>
+                            ))
+                          : (i === 0 ? '(Je prompt)' : msg.content)
+                        }
+                      </p>
+                    </div>
+                  </div>
                 ))}
+                {uitvoerLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 rounded-2xl px-4 py-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Chat input */}
+              <div className="p-4 border-t bg-gray-50">
+                <div className="flex gap-2 items-end">
+                  <textarea
+                    ref={chatInputRef}
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={handleChatKeyDown}
+                    placeholder="Typ je vervolgvraag..."
+                    rows={2}
+                    className="flex-1 px-4 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                    disabled={uitvoerLoading}
+                  />
+                  <Button
+                    onClick={handleChatSend}
+                    disabled={!chatInput.trim() || uitvoerLoading}
+                    size="icon"
+                    className="rounded-full h-10 w-10 flex-shrink-0"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Opties na resultaat */}
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-3 p-4 border-t">
                 <Button
                   onClick={() => {
-                    setUitvoerResultaat(null)
+                    setChatMessages([])
                     setPhase('bouwprompt')
                   }}
                   variant="outline"
