@@ -256,10 +256,10 @@ export const aiHelptRollen: AIRol[] = [
     emoji: '🎓',
     titel: 'Uitlegger',
     beschrijving: 'AI legt iets uit dat je niet snapt',
-    voorbeeld: 'Je bent een geduldige docent biologie. Ik zit in 2 havo en snap fotosynthese niet goed voor mijn toets. Leg uit wat fotosynthese is in simpele stappen.',
+    voorbeeld: 'Je bent een geduldige docent biologie. Ik zit in {leerjaar} {schoolType} en snap fotosynthese niet goed voor mijn toets. Leg uit wat fotosynthese is in simpele stappen.',
     voorbeeldStructuur: {
       rol: 'Je bent een geduldige docent biologie.',
-      context: 'Ik zit in 2 havo en snap fotosynthese niet goed voor mijn toets.',
+      context: 'Ik zit in {leerjaar} {schoolType} en snap fotosynthese niet goed voor mijn toets.',
       instructies: 'Leg uit wat fotosynthese is in simpele stappen.'
     }
   },
@@ -268,10 +268,10 @@ export const aiHelptRollen: AIRol[] = [
     emoji: '💡',
     titel: 'Brainstormer',
     beschrijving: 'AI helpt je ideeën bedenken',
-    voorbeeld: 'Je bent een creatieve denker die goed is in brainstormen. Ik moet een werkstuk maken voor geschiedenis over de Tweede Wereldoorlog. Geef me 5 originele invalshoeken waar ik over zou kunnen schrijven.',
+    voorbeeld: 'Je bent een creatieve denker die goed is in brainstormen. Ik zit in {leerjaar} {schoolType} en moet een werkstuk maken voor geschiedenis over de Tweede Wereldoorlog. Geef me 5 originele invalshoeken waar ik over zou kunnen schrijven.',
     voorbeeldStructuur: {
       rol: 'Je bent een creatieve denker die goed is in brainstormen.',
-      context: 'Ik moet een werkstuk maken voor geschiedenis over de Tweede Wereldoorlog.',
+      context: 'Ik zit in {leerjaar} {schoolType} en moet een werkstuk maken voor geschiedenis over de Tweede Wereldoorlog.',
       instructies: 'Geef me 5 originele invalshoeken waar ik over zou kunnen schrijven.'
     }
   },
@@ -280,10 +280,10 @@ export const aiHelptRollen: AIRol[] = [
     emoji: '💬',
     titel: 'Feedbacker',
     beschrijving: 'AI geeft feedback op jouw werk',
-    voorbeeld: 'Je bent een strenge maar eerlijke docent Nederlands. Ik heb een betoog geschreven over social media voor school (500 woorden, onderbouw havo). Geef feedback op mijn inleiding. Let op: is mijn stelling duidelijk? Geef 3 concrete verbeterpunten.',
+    voorbeeld: 'Je bent een strenge maar eerlijke docent Nederlands. Ik zit in {leerjaar} {schoolType} en heb een betoog geschreven over social media (500 woorden). Geef feedback op mijn inleiding. Let op: is mijn stelling duidelijk? Geef 3 concrete verbeterpunten.',
     voorbeeldStructuur: {
       rol: 'Je bent een strenge maar eerlijke docent Nederlands.',
-      context: 'Ik heb een betoog geschreven over social media voor school (500 woorden, onderbouw havo).',
+      context: 'Ik zit in {leerjaar} {schoolType} en heb een betoog geschreven over social media (500 woorden).',
       instructies: 'Geef feedback op mijn inleiding. Let op: is mijn stelling duidelijk? Geef 3 concrete verbeterpunten.'
     }
   },
@@ -292,10 +292,10 @@ export const aiHelptRollen: AIRol[] = [
     emoji: '🎭',
     titel: 'Oefenmaatje',
     beschrijving: 'AI oefent met je of speelt een rol',
-    voorbeeld: 'Je bent de manager van een supermarkt waar ik solliciteer voor een bijbaan. Ik ben een leerling van 15 jaar zonder werkervaring. Stel me 5 sollicitatievragen en geef na elk antwoord korte feedback.',
+    voorbeeld: 'Je bent de manager van een supermarkt waar ik solliciteer voor een bijbaan. Ik zit in {leerjaar} {schoolType} en heb geen werkervaring. Stel me 5 sollicitatievragen en geef na elk antwoord korte feedback.',
     voorbeeldStructuur: {
       rol: 'Je bent de manager van een supermarkt waar ik solliciteer voor een bijbaan.',
-      context: 'Ik ben een leerling van 15 jaar zonder werkervaring.',
+      context: 'Ik zit in {leerjaar} {schoolType} en heb geen werkervaring.',
       instructies: 'Stel me 5 sollicitatievragen en geef na elk antwoord korte feedback.'
     }
   },
@@ -307,10 +307,10 @@ export const aiDoetRollen: AIRol[] = [
     emoji: '✍️',
     titel: 'Schrijver',
     beschrijving: 'AI schrijft een tekst voor je',
-    voorbeeld: 'Je bent een behulpzame schrijfassistent. Ik zit in 3 VWO en was ziek tijdens een toets. De docent heet meneer Jansen. Schrijf een korte, nette mail om te vragen of ik de toets later mag maken. Houd het onder de 100 woorden.',
+    voorbeeld: 'Je bent een behulpzame schrijfassistent. Ik zit in {leerjaar} {schoolType} en was ziek tijdens een toets. De docent heet meneer Jansen. Schrijf een korte, nette mail om te vragen of ik de toets later mag maken. Houd het onder de 100 woorden.',
     voorbeeldStructuur: {
       rol: 'Je bent een behulpzame schrijfassistent.',
-      context: 'Ik zit in 3 VWO en was ziek tijdens een toets. De docent heet meneer Jansen.',
+      context: 'Ik zit in {leerjaar} {schoolType} en was ziek tijdens een toets. De docent heet meneer Jansen.',
       instructies: 'Schrijf een korte, nette mail om te vragen of ik de toets later mag maken. Houd het onder de 100 woorden.'
     }
   },
@@ -319,10 +319,10 @@ export const aiDoetRollen: AIRol[] = [
     emoji: '🌍',
     titel: 'Vertaler',
     beschrijving: 'AI vertaalt tekst naar een andere taal',
-    voorbeeld: 'Je bent een professionele vertaler Nederlands-Engels. Ik moet een formele mail naar een Engelse uitwisselingsschool sturen. Vertaal deze tekst naar goed Engels: "Beste meneer, Ik wil graag een afspraak maken om mijn presentatie te bespreken. Heeft u volgende week tijd?"',
+    voorbeeld: 'Je bent een professionele vertaler Nederlands-Engels. Ik zit in {leerjaar} {schoolType} en moet een formele mail naar een Engelse uitwisselingsschool sturen. Vertaal deze tekst naar goed Engels: "Beste meneer, Ik wil graag een afspraak maken om mijn presentatie te bespreken. Heeft u volgende week tijd?"',
     voorbeeldStructuur: {
       rol: 'Je bent een professionele vertaler Nederlands-Engels.',
-      context: 'Ik moet een formele mail naar een Engelse uitwisselingsschool sturen.',
+      context: 'Ik zit in {leerjaar} {schoolType} en moet een formele mail naar een Engelse uitwisselingsschool sturen.',
       instructies: 'Vertaal deze tekst naar goed Engels: "Beste meneer, Ik wil graag een afspraak maken om mijn presentatie te bespreken. Heeft u volgende week tijd?"'
     }
   },
@@ -331,10 +331,10 @@ export const aiDoetRollen: AIRol[] = [
     emoji: '✨',
     titel: 'Verbeteraar',
     beschrijving: 'AI verbetert spelling en zinnen',
-    voorbeeld: 'Je bent een nauwkeurige tekstverbeteraar. Dit is een stukje uit mijn schoolverslag voor Nederlands. Verbeter alleen de spelling en grammatica, verander de inhoud niet: "Ik heb gister een hele leuke film gekijkt. Het was egt spannend en ik kon nie stoppen met kijke."',
+    voorbeeld: 'Je bent een nauwkeurige tekstverbeteraar. Dit is een stukje uit mijn schoolverslag voor {schoolType}. Verbeter alleen de spelling en grammatica, verander de inhoud niet: "Ik heb gister een hele leuke film gekijkt. Het was egt spannend en ik kon nie stoppen met kijke."',
     voorbeeldStructuur: {
       rol: 'Je bent een nauwkeurige tekstverbeteraar.',
-      context: 'Dit is een stukje uit mijn schoolverslag voor Nederlands.',
+      context: 'Dit is een stukje uit mijn schoolverslag voor {schoolType}.',
       instructies: 'Verbeter alleen de spelling en grammatica, verander de inhoud niet: "Ik heb gister een hele leuke film gekijkt. Het was egt spannend en ik kon nie stoppen met kijke."'
     }
   },
@@ -343,10 +343,10 @@ export const aiDoetRollen: AIRol[] = [
     emoji: '📋',
     titel: 'Samenvatter',
     beschrijving: 'AI maakt een korte samenvatting',
-    voorbeeld: 'Je bent een beknopte samenvatter. Ik moet deze tekst over fotosynthese begrijpen voor mijn biologietoets. Vat deze tekst samen in precies 3 korte zinnen: "Fotosynthese is het proces waarbij planten zonlicht gebruiken om energie te maken. Ze nemen koolstofdioxide op uit de lucht en water uit de grond. Met behulp van chlorofyl in hun bladeren zetten ze dit om in glucose en zuurstof. De glucose gebruiken planten als brandstof om te groeien."',
+    voorbeeld: 'Je bent een beknopte samenvatter. Ik zit in {leerjaar} {schoolType} en moet deze tekst over fotosynthese begrijpen voor mijn biologietoets. Vat deze tekst samen in precies 3 korte zinnen: "Fotosynthese is het proces waarbij planten zonlicht gebruiken om energie te maken. Ze nemen koolstofdioxide op uit de lucht en water uit de grond. Met behulp van chlorofyl in hun bladeren zetten ze dit om in glucose en zuurstof. De glucose gebruiken planten als brandstof om te groeien."',
     voorbeeldStructuur: {
       rol: 'Je bent een beknopte samenvatter.',
-      context: 'Ik moet deze tekst over fotosynthese begrijpen voor mijn biologietoets.',
+      context: 'Ik zit in {leerjaar} {schoolType} en moet deze tekst over fotosynthese begrijpen voor mijn biologietoets.',
       instructies: 'Vat deze tekst samen in precies 3 korte zinnen: "Fotosynthese is het proces..."'
     }
   },

@@ -49,8 +49,11 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
   useEffect(() => {
     if (isOpen) {
       setMessages([])
-      // Pre-fill input with example (remove quotes)
-      const example = role.voorbeeld.replace(/^["']|["']$/g, '')
+      // Pre-fill input with example (remove quotes) and replace placeholders with actual niveau
+      let example = role.voorbeeld.replace(/^["']|["']$/g, '')
+      example = example
+        .replace(/{schoolType}/g, niveau.schoolType?.toUpperCase() || 'HAVO')
+        .replace(/{leerjaar}/g, String(niveau.leerjaar || 3))
       setInput(example)
       setTimeout(() => {
         inputRef.current?.focus()
@@ -58,7 +61,7 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
         inputRef.current?.select()
       }, 100)
     }
-  }, [isOpen, role.id, role.voorbeeld])
+  }, [isOpen, role.id, role.voorbeeld, niveau.schoolType, niveau.leerjaar])
 
   // Scroll to bottom when messages change
   useEffect(() => {
