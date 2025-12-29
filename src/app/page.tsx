@@ -215,54 +215,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features Section */}
-        <section className="py-16 bg-primary-light/20">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-12">
-                Wat kun je verwachten?
-              </h2>
-
-              <div className="grid md:grid-cols-3 gap-8">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                    <BookOpen className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Leermodules
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Korte, interactieve modules aangepast aan jouw niveau
-                  </p>
-                </div>
-
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                    <MessageSquare className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    AI-coach
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Een slimme coach die je helpt en feedback geeft
-                  </p>
-                </div>
-
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Oefeningen
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Praktische oefeningen om je vaardigheden te trainen
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
       <Footer />
