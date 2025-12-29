@@ -58,7 +58,15 @@ export function NiveauProvider({ children }: { children: ReactNode }) {
 
     if (savedProgress) {
       try {
-        setProgress(JSON.parse(savedProgress))
+        const parsed = JSON.parse(savedProgress)
+        // Merge met defaultProgress om ontbrekende keys aan te vullen
+        // Dit voorkomt problemen met oude localStorage data
+        setProgress({
+          kiezen: { ...defaultProgress.kiezen, ...parsed.kiezen },
+          instrueren: { ...defaultProgress.instrueren, ...parsed.instrueren },
+          evalueren: { ...defaultProgress.evalueren, ...parsed.evalueren },
+          spelregels: { ...defaultProgress.spelregels, ...parsed.spelregels },
+        })
       } catch (e) {
         console.error('Error parsing saved progress:', e)
       }
