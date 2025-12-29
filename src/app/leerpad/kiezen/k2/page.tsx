@@ -252,6 +252,11 @@ Houd het heel kort en concreet.`,
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setChatLoading(true)
 
+    // Bouw context met bestaande stappen
+    const bestaandeStappen = stappen.length > 0
+      ? `\n\nAl ingevoerde stappen:\n${stappen.map((s, i) => `${i + 1}. ${s.titel}`).join('\n')}`
+      : ''
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -262,7 +267,9 @@ Houd het heel kort en concreet.`,
             niveau: niveau.schoolType,
             leerjaar: niveau.leerjaar,
             currentModule: 'kiezen',
-            moduleContext: `Opdracht: ${gekozenOpdracht?.titel}. De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stappen, maar geef niet het antwoord. Geef maximaal 3-4 concrete suggesties per keer zoals "Onderwerp kiezen", "Informatie verzamelen", "Structuur maken". Houd het kort en praktisch.`,
+            moduleContext: `Opdracht: ${gekozenOpdracht?.titel}.${bestaandeStappen}
+
+De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stappen die nog missen. Geef maximaal 3-4 concrete suggesties per keer zoals "Onderwerp kiezen", "Informatie verzamelen", "Structuur maken". Houd het kort en praktisch. Als er al stappen zijn, bouw daarop voort.`,
             aiMode: 'helpt',
             conversationHistory: chatMessages
           }
@@ -347,10 +354,17 @@ Houd het heel kort en concreet.`,
                 >
                   K2
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Kies een opdracht</h1>
+                <h1 className="text-xl font-bold text-gray-900">Taak-Ontleder</h1>
               </div>
               <p className="text-gray-600">
-                Welke opdracht wil je uitwerken?
+                Je gaat een opdracht opsplitsen in stappen en per stap bepalen: doe ik dit zelf, samen met AI, of laat ik AI het doen?
+              </p>
+            </div>
+
+            {/* Uitleg */}
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
+              <p className="text-sm text-gray-700">
+                <strong>Hoe werkt het?</strong> Kies eerst een opdracht. Daarna bedenk je welke stappen nodig zijn en kies je per stap je aanpak.
               </p>
             </div>
 
@@ -402,10 +416,17 @@ Houd het heel kort en concreet.`,
                 >
                   K2
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Welke stappen?</h1>
+                <h1 className="text-xl font-bold text-gray-900">Stap 1: Opdeling</h1>
               </div>
               <p className="text-gray-600">
-                <span className="font-medium">{gekozenOpdracht?.titel}</span> — Bedenk welke stappen je moet zetten
+                <span className="font-medium">{gekozenOpdracht?.titel}</span>
+              </p>
+            </div>
+
+            {/* Uitleg */}
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
+              <p className="text-sm text-gray-700">
+                Splits de opdracht op in losse stappen. Bijvoorbeeld: &quot;Onderwerp kiezen&quot;, &quot;Informatie zoeken&quot;, &quot;Tekst schrijven&quot;. Voeg minimaal 2 stappen toe.
               </p>
             </div>
 
@@ -566,11 +587,35 @@ Houd het heel kort en concreet.`,
                 >
                   K2
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Kies je aanpak</h1>
+                <h1 className="text-xl font-bold text-gray-900">Stap 2: Aanpak kiezen</h1>
               </div>
               <p className="text-gray-600">
-                Hoe ga je elke stap aanpakken?
+                <span className="font-medium">{gekozenOpdracht?.titel}</span>
               </p>
+            </div>
+
+            {/* Uitleg */}
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
+              <p className="text-sm text-gray-700 mb-2">
+                Kies per stap hoe je die gaat aanpakken:
+              </p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="bg-white rounded-lg p-2 text-center">
+                  <span className="text-lg">👤</span>
+                  <div className="font-medium text-gray-900">Zelf</div>
+                  <div className="text-gray-500">Zonder AI</div>
+                </div>
+                <div className="bg-white rounded-lg p-2 text-center">
+                  <span className="text-lg">🤝</span>
+                  <div className="font-medium text-gray-900">Samen</div>
+                  <div className="text-gray-500">AI helpt mij</div>
+                </div>
+                <div className="bg-white rounded-lg p-2 text-center">
+                  <span className="text-lg">🤖</span>
+                  <div className="font-medium text-gray-900">AI doet</div>
+                  <div className="text-gray-500">AI maakt, ik check</div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-3 mb-6">
@@ -692,10 +737,17 @@ Houd het heel kort en concreet.`,
                 >
                   K2
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Jouw strategie</h1>
+                <h1 className="text-xl font-bold text-gray-900">Stap 3: Inschatten</h1>
               </div>
               <p className="text-gray-600">
-                {gekozenOpdracht?.titel}
+                <span className="font-medium">{gekozenOpdracht?.titel}</span>
+              </p>
+            </div>
+
+            {/* Uitleg */}
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
+              <p className="text-sm text-gray-700">
+                Denk na over je gekozen aanpak. Wat betekent dit voor hoeveel je leert en voor de kwaliteit van het resultaat?
               </p>
             </div>
 
@@ -836,6 +888,22 @@ Houd het heel kort en concreet.`,
         <Header />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-4xl">
+            {/* Header */}
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                  style={{ backgroundColor: kiesKleuren.kiezen }}
+                >
+                  K2
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">Jouw strategie</h1>
+              </div>
+              <p className="text-sm text-gray-600">
+                Bekijk je plan. Tevreden? Of wil je nog iets aanpassen?
+              </p>
+            </div>
+
             {/* 1. Resultaat - compact bovenaan */}
             <div className="flex gap-3 mb-4">
               <div className="bg-white rounded-lg border shadow-sm px-3 py-2 flex items-center gap-2">
