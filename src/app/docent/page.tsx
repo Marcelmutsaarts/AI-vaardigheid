@@ -195,6 +195,36 @@ export default function DocentDashboard() {
           </div>
         </div>
 
+        {/* Wetenschappelijke basis */}
+        <div className="bg-white rounded-xl border shadow-sm p-5 mb-6">
+          <h2 className="font-semibold text-gray-900 mb-3">Wetenschappelijke basis</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            De AI-rollen in KIES zijn gebaseerd op onderzoek van Mollick & Mollick (2023),
+            die zeven manieren beschrijven waarop AI in het onderwijs kan worden ingezet.
+          </p>
+          <div className="space-y-3 text-sm">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="font-medium text-gray-900 mb-1">AI helpt (samenwerken)</p>
+              <ul className="text-gray-600 space-y-1">
+                <li>• <strong>Uitlegger</strong> = AI-Tutor: maakt concepten begrijpelijk</li>
+                <li>• <strong>Brainstormer</strong> = AI-Teammate: partner bij het bedenken van ideeën</li>
+                <li>• <strong>Feedbacker</strong> = AI-Mentor + AI-Coach: geeft feedback en helpt reflecteren</li>
+                <li>• <strong>Oefenmaatje</strong> = AI-Simulator + AI-Student: oefenen met scenario's, of uitleggen aan AI om eigen begrip te toetsen</li>
+              </ul>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="font-medium text-gray-900 mb-1">AI doet (uitbesteden)</p>
+              <p className="text-gray-600">
+                De vier uitvoerende rollen (Schrijver, Samenvatter, Vertaler, Onderzoeker) vallen onder
+                wat Mollick & Mollick <strong>AI-Tool</strong> noemen: AI als instrument dat taken uitvoert.
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            Bron: Mollick, E. R., & Mollick, L. (2023). Assigning AI: Seven Approaches for Students.
+          </p>
+        </div>
+
         {/* Links */}
         <div className="bg-gray-100 rounded-xl p-5 text-center">
           <p className="text-sm text-gray-600 mb-3">
