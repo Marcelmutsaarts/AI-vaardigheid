@@ -6,60 +6,56 @@ import Link from 'next/link'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Download, Award } from 'lucide-react'
-import { kiesKleuren, getNiveauCategorie, getPromptModel } from '@/lib/utils'
+import { kiesKleuren } from '@/lib/utils'
 
-// Content per niveau voor Instrueren
-const promptModelContent = {
-  DWH: {
-    naam: 'DWH-model',
-    uitleg: 'Doel - Wie - Hoe',
-    stappen: [
-      { letter: 'D', titel: 'Doel', vraag: 'Wat wil je bereiken?' },
-      { letter: 'W', titel: 'Wie', vraag: 'Voor wie is het?' },
-      { letter: 'H', titel: 'Hoe', vraag: 'Hoe moet het eruit zien?' },
-    ]
-  },
-  DWCH: {
-    naam: 'DWCH-model',
-    uitleg: 'Doel - Wie - Context - Hoe',
-    stappen: [
-      { letter: 'D', titel: 'Doel', vraag: 'Wat wil je bereiken?' },
-      { letter: 'W', titel: 'Wie', vraag: 'Voor wie is het?' },
-      { letter: 'C', titel: 'Context', vraag: 'Wat is de situatie?' },
-      { letter: 'H', titel: 'Hoe', vraag: 'Hoe moet het eruit zien?' },
-    ]
-  },
-  RDCFR: {
-    naam: 'RDCFR-model',
-    uitleg: 'Rol - Doel - Context - Format - Restricties',
-    stappen: [
-      { letter: 'R', titel: 'Rol', vraag: 'Welke rol heeft de AI?' },
-      { letter: 'D', titel: 'Doel', vraag: 'Wat wil je bereiken?' },
-      { letter: 'C', titel: 'Context', vraag: 'Wat is de achtergrond?' },
-      { letter: 'F', titel: 'Format', vraag: 'Hoe moet het eruit zien?' },
-      { letter: 'R', titel: 'Restricties', vraag: 'Wat mag niet?' },
-    ]
-  }
-}
-
-const vijfAanpakken = [
-  { emoji: '✋', naam: 'Zelf doen', beschrijving: 'Zonder AI' },
-  { emoji: '🧠', naam: 'Nadenken', beschrijving: 'AI helpt doordenken' },
-  { emoji: '💡', naam: 'Op gang komen', beschrijving: 'AI geeft ideeën' },
-  { emoji: '🎯', naam: 'Oefenen', beschrijving: 'AI helpt oefenen' },
-  { emoji: '⚙️', naam: 'Uitbesteden', beschrijving: 'AI voert uit' },
+// K - Kiezen: 3 aanpakken
+const drieAanpakken = [
+  { emoji: '👤', naam: 'Zelf', beschrijving: 'Zonder AI' },
+  { emoji: '🤝', naam: 'AI helpt', beschrijving: 'AI ondersteunt mij' },
+  { emoji: '🤖', naam: 'AI doet', beschrijving: 'AI maakt, ik check' },
 ]
 
+// K - Kiezen: 8 AI-rollen
+const aiRollen = {
+  helpt: [
+    { emoji: '🎓', naam: 'Uitlegger' },
+    { emoji: '💡', naam: 'Brainstormer' },
+    { emoji: '💬', naam: 'Feedbacker' },
+    { emoji: '🎭', naam: 'Oefenmaatje' },
+  ],
+  doet: [
+    { emoji: '✍️', naam: 'Schrijver' },
+    { emoji: '🌍', naam: 'Vertaler' },
+    { emoji: '✨', naam: 'Verbeteraar' },
+    { emoji: '📋', naam: 'Samenvatter' },
+  ]
+}
+
+// I - Instrueren: 4 prompt onderdelen
+const promptOnderdelen = [
+  { nummer: 1, titel: 'Rol', vraag: 'Wie is de AI?', verplicht: true },
+  { nummer: 2, titel: 'Context', vraag: 'Wat is de situatie?', verplicht: true },
+  { nummer: 3, titel: 'Instructies', vraag: 'Wat moet AI doen?', verplicht: true },
+  { nummer: 4, titel: 'Voorbeeld', vraag: 'Hoe moet het eruit zien?', verplicht: false },
+]
+
+// E - Evalueren: valkuilen
+const aiValkuilen = [
+  { emoji: '🎭', naam: 'Vooroordelen', tip: 'Maakt AI aannames over mensen?' },
+  { emoji: '🌀', naam: 'Verzinsels', tip: 'Check feiten bij betrouwbare bron' },
+  { emoji: '😊', naam: 'Ja-knikken', tip: 'AI is het snel met je eens' },
+]
+
+// S - Spelregels
 const privacyChecklist = [
-  'Deel geen persoonlijke gegevens (adres, telefoon, wachtwoorden)',
-  'Deel geen informatie over anderen zonder toestemming',
-  'Deel geen vertrouwelijke info (toetsantwoorden, geheimen)',
+  'Geen persoonlijke gegevens (adres, wachtwoorden)',
+  'Geen info over anderen zonder toestemming',
+  'Geen vertrouwelijke info (toetsantwoorden)',
 ]
 
 const transparantieTips = [
   'Schoolregels gaan altijd voor',
-  'Hoe meer AI het werk doet, hoe belangrijker om te melden',
-  'Vraag jezelf: zou de ander willen weten dat ik AI gebruikte?',
+  'Hoe meer AI doet, hoe meer melden',
 ]
 
 export default function DiplomaPage() {
@@ -82,11 +78,9 @@ export default function DiplomaPage() {
     return null
   }
 
-  const niveauCategorie = getNiveauCategorie(niveau.schoolType, niveau.leerjaar)
-  const promptModel = niveauCategorie ? getPromptModel(niveauCategorie) : 'DWH'
-  const promptContent = promptModelContent[promptModel]
-
-  const niveauLabel = `${niveau.schoolType.toUpperCase()} ${niveau.leerjaar}`
+  const niveauLabel = niveau.leerjaar
+    ? `${niveau.schoolType.toUpperCase()} ${niveau.leerjaar}`
+    : niveau.schoolType.toUpperCase()
 
   const handlePrint = () => {
     window.print()
@@ -163,7 +157,7 @@ export default function DiplomaPage() {
             </div>
           </div>
 
-          <div className="p-6 print:p-4 space-y-5 print:space-y-3">
+          <div className="p-6 print:p-4 space-y-4 print:space-y-3">
             {/* K - Kiezen */}
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -173,16 +167,40 @@ export default function DiplomaPage() {
                 >
                   K
                 </div>
-                <h2 className="font-semibold text-gray-900">Kiezen: De 5 aanpakken</h2>
+                <h2 className="font-semibold text-gray-900">Kiezen: Wanneer gebruik je AI?</h2>
               </div>
-              <div className="grid grid-cols-5 gap-1 text-center">
-                {vijfAanpakken.map((a) => (
-                  <div key={a.naam} className="bg-gray-50 rounded-lg p-2 print:p-1">
+              {/* 3 aanpakken */}
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                {drieAanpakken.map((a) => (
+                  <div key={a.naam} className="bg-gray-50 rounded-lg p-2 print:p-1 text-center">
                     <div className="text-lg print:text-base">{a.emoji}</div>
                     <div className="text-xs font-medium text-gray-900">{a.naam}</div>
-                    <div className="text-xs text-gray-500 print:text-[10px]">{a.beschrijving}</div>
+                    <div className="text-[10px] text-gray-500">{a.beschrijving}</div>
                   </div>
                 ))}
+              </div>
+              {/* 8 AI-rollen */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-blue-50 rounded-lg p-2 border border-blue-100">
+                  <p className="text-[10px] font-medium text-blue-800 mb-1">🤝 AI helpt mij:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {aiRollen.helpt.map((r) => (
+                      <span key={r.naam} className="text-[10px] bg-white rounded px-1.5 py-0.5 border">
+                        {r.emoji} {r.naam}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-2 border border-purple-100">
+                  <p className="text-[10px] font-medium text-purple-800 mb-1">🤖 AI doet het:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {aiRollen.doet.map((r) => (
+                      <span key={r.naam} className="text-[10px] bg-white rounded px-1.5 py-0.5 border">
+                        {r.emoji} {r.naam}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -195,14 +213,18 @@ export default function DiplomaPage() {
                 >
                   I
                 </div>
-                <h2 className="font-semibold text-gray-900">Instrueren: {promptContent.naam}</h2>
+                <h2 className="font-semibold text-gray-900">Instrueren: Hoe vraag je het?</h2>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3 print:p-2">
-                <div className="flex flex-wrap gap-2">
-                  {promptContent.stappen.map((s) => (
-                    <div key={s.letter} className="flex items-center gap-1 bg-white rounded px-2 py-1 border">
-                      <span className="font-bold text-primary text-sm">{s.letter}</span>
-                      <span className="text-xs text-gray-600">{s.titel}: {s.vraag}</span>
+              <div className="bg-gray-50 rounded-lg p-2">
+                <div className="grid grid-cols-4 gap-1">
+                  {promptOnderdelen.map((o) => (
+                    <div key={o.nummer} className="bg-white rounded p-1.5 border text-center">
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold mb-0.5">
+                        {o.nummer}
+                      </span>
+                      <div className="text-xs font-medium text-gray-900">{o.titel}</div>
+                      <div className="text-[10px] text-gray-500">{o.vraag}</div>
+                      {!o.verplicht && <div className="text-[9px] text-gray-400">(optioneel)</div>}
                     </div>
                   ))}
                 </div>
@@ -218,23 +240,34 @@ export default function DiplomaPage() {
                 >
                   E
                 </div>
-                <h2 className="font-semibold text-gray-900">Evalueren: Mens-AI-Mens</h2>
+                <h2 className="font-semibold text-gray-900">Evalueren: Klopt het?</h2>
               </div>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-green-50 rounded-lg p-2 text-center border border-green-200">
-                  <div className="text-lg">🧑</div>
-                  <div className="text-xs font-medium text-gray-900">1. Begrijpen</div>
-                  <div className="text-xs text-gray-500">Snap je het zelf?</div>
+              {/* Mens-AI-Mens */}
+              <div className="flex gap-1 mb-2">
+                <div className="flex-1 bg-green-50 rounded-lg p-1.5 text-center border border-green-200">
+                  <div className="text-base">🧑</div>
+                  <div className="text-[10px] font-medium text-gray-900">1. Begrijpen</div>
                 </div>
-                <div className="flex-1 bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                  <div className="text-lg">🤖</div>
-                  <div className="text-xs font-medium text-gray-900">2. Checken</div>
-                  <div className="text-xs text-gray-500">Klopt het?</div>
+                <div className="flex-1 bg-blue-50 rounded-lg p-1.5 text-center border border-blue-200">
+                  <div className="text-base">🤖</div>
+                  <div className="text-[10px] font-medium text-gray-900">2. Checken</div>
                 </div>
-                <div className="flex-1 bg-purple-50 rounded-lg p-2 text-center border border-purple-200">
-                  <div className="text-lg">🧑</div>
-                  <div className="text-xs font-medium text-gray-900">3. Verbeteren</div>
-                  <div className="text-xs text-gray-500">Maak het af</div>
+                <div className="flex-1 bg-purple-50 rounded-lg p-1.5 text-center border border-purple-200">
+                  <div className="text-base">🧑</div>
+                  <div className="text-[10px] font-medium text-gray-900">3. Aanpassen</div>
+                </div>
+              </div>
+              {/* Valkuilen */}
+              <div className="bg-amber-50 rounded-lg p-2 border border-amber-100">
+                <p className="text-[10px] font-medium text-amber-800 mb-1">Let op deze valkuilen:</p>
+                <div className="grid grid-cols-3 gap-1">
+                  {aiValkuilen.map((v) => (
+                    <div key={v.naam} className="bg-white rounded p-1.5 border text-center">
+                      <div className="text-sm">{v.emoji}</div>
+                      <div className="text-[10px] font-medium text-gray-900">{v.naam}</div>
+                      <div className="text-[9px] text-gray-500">{v.tip}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -248,23 +281,30 @@ export default function DiplomaPage() {
                 >
                   S
                 </div>
-                <h2 className="font-semibold text-gray-900">Spelregels</h2>
+                <h2 className="font-semibold text-gray-900">Spelregels: Wat mag?</h2>
               </div>
-              <div className="grid md:grid-cols-2 gap-2 print:grid-cols-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="bg-red-50 rounded-lg p-2 border border-red-200">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Privacy - Deel niet:</p>
-                  <ul className="text-xs text-gray-600 space-y-0.5">
+                  <p className="text-[10px] font-medium text-red-800 mb-1">🔒 Privacy</p>
+                  <ul className="text-[9px] text-gray-600 space-y-0.5">
                     {privacyChecklist.map((item, i) => (
                       <li key={i}>• {item}</li>
                     ))}
                   </ul>
                 </div>
                 <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
-                  <p className="text-xs font-medium text-gray-900 mb-1">Transparantie:</p>
-                  <ul className="text-xs text-gray-600 space-y-0.5">
+                  <p className="text-[10px] font-medium text-amber-800 mb-1">📢 Melden</p>
+                  <ul className="text-[9px] text-gray-600 space-y-0.5">
                     {transparantieTips.map((item, i) => (
                       <li key={i}>• {item}</li>
                     ))}
+                  </ul>
+                </div>
+                <div className="bg-green-50 rounded-lg p-2 border border-green-200">
+                  <p className="text-[10px] font-medium text-green-800 mb-1">🌱 Bewust</p>
+                  <ul className="text-[9px] text-gray-600 space-y-0.5">
+                    <li>• AI voor leren = de moeite waard</li>
+                    <li>• Mindloos genereren = verspilling</li>
                   </ul>
                 </div>
               </div>
