@@ -19,12 +19,16 @@ export default function K1Page() {
   const [selectedMode, setSelectedMode] = useState<'helpt' | 'doet'>('helpt')
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
@@ -66,10 +70,20 @@ export default function K1Page() {
               >
                 K1
               </div>
-              <h1 className="text-xl font-bold text-gray-900">Drie manieren</h1>
+              <h1 className="text-xl font-bold text-gray-900">Drie manieren om AI te gebruiken</h1>
             </div>
             <p className="text-gray-600">
-              Klik op een optie om te verkennen
+              Er zijn verschillende manieren om met AI samen te werken. Ontdek ze hieronder.
+            </p>
+          </div>
+
+          {/* Uitleg */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
+            <p className="text-sm text-gray-700 mb-2">
+              <strong>Wat ga je doen?</strong> Klik op een rol om te zien wat AI daarmee kan. Je krijgt een voorbeeldprompt die je kunt aanpassen en uitproberen.
+            </p>
+            <p className="text-sm text-gray-600">
+              Probeer minstens 1 rol uit elke kolom om te ervaren hoe AI op verschillende manieren kan helpen.
             </p>
           </div>
 

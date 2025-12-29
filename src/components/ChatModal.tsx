@@ -20,6 +20,8 @@ interface ChatModalProps {
     titel: string
     beschrijving: string
     voorbeeld: string
+    voorbeeldMBO?: string
+    voorbeeldHBO?: string
   }
   mode: 'helpt' | 'doet'
 }
@@ -50,10 +52,19 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
     if (isOpen) {
       setMessages([])
       // Pre-fill input with example (remove quotes) and replace placeholders with actual niveau
-      let example = role.voorbeeld.replace(/^["']|["']$/g, '')
-      example = example
-        .replace(/{schoolType}/g, niveau.schoolType?.toUpperCase() || 'HAVO')
-        .replace(/{leerjaar}/g, String(niveau.leerjaar || 3))
+      // Use MBO/HBO-specific example if available
+      let example: string
+      if (niveau.schoolType === 'mbo' && role.voorbeeldMBO) {
+        example = role.voorbeeldMBO
+      } else if (niveau.schoolType === 'hbo' && role.voorbeeldHBO) {
+        example = role.voorbeeldHBO
+      } else {
+        example = role.voorbeeld.replace(/^["']|["']$/g, '')
+        // Replace placeholders for VO
+        example = example
+          .replace(/{schoolType}/g, niveau.schoolType?.toUpperCase() || 'HAVO')
+          .replace(/{leerjaar}/g, String(niveau.leerjaar || 3))
+      }
       setInput(example)
       setTimeout(() => {
         inputRef.current?.focus()
@@ -61,7 +72,7 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
         inputRef.current?.select()
       }, 100)
     }
-  }, [isOpen, role.id, role.voorbeeld, niveau.schoolType, niveau.leerjaar])
+  }, [isOpen, role.id, role.voorbeeld, role.voorbeeldMBO, role.voorbeeldHBO, niveau.schoolType, niveau.leerjaar])
 
   // Scroll to bottom when messages change
   useEffect(() => {

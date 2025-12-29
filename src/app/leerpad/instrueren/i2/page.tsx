@@ -112,12 +112,16 @@ export default function I2Page() {
   const resultaatRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
@@ -391,7 +395,7 @@ Belangrijk:
   // Afronden
   const handleComplete = () => {
     updateProgress('instrueren', 'i2', true)
-    router.push('/dashboard')
+    router.push('/leerpad/evalueren/e1')
   }
 
   // ============ FASE 1: KIES ROL ============

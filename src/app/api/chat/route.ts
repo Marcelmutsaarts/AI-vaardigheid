@@ -12,8 +12,8 @@ interface ChatMessage {
 interface ChatRequest {
   message: string
   context: {
-    niveau: 'vmbo' | 'havo' | 'vwo'
-    leerjaar: number
+    niveau: 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo'
+    leerjaar: number | null
     currentModule: 'kiezen' | 'instrueren' | 'evalueren' | 'spelregels'
     moduleContext?: string
     aiMode?: 'helpt' | 'doet' // Voor K1: AI helpt mij vs AI doet het
@@ -22,8 +22,28 @@ interface ChatRequest {
 }
 
 // Taalinstructies per niveau categorie
-function getTaalInstructies(niveau: string, leerjaar: number): string {
-  if (niveau === 'vmbo' && leerjaar <= 2) {
+function getTaalInstructies(niveau: string, leerjaar: number | null): string {
+  // MBO: praktisch, beroepsgericht
+  if (niveau === 'mbo') {
+    return `
+    - Normale zinsbouw, helder Nederlands
+    - Verwijs naar stage, werk en beroepspraktijk
+    - Houd het praktisch en concreet
+    - Toon: behulpzaam, professioneel
+    - Gebruik voorbeelden uit de werkomgeving`
+  }
+  // HBO: professioneel, academisch
+  if (niveau === 'hbo') {
+    return `
+    - Professioneel taalgebruik
+    - Verwijs naar onderzoek, projecten en beroepspraktijk
+    - Stimuleer kritisch denken en onderbouwing
+    - Toon: collegiaal, intellectueel uitdagend
+    - Behandel als aankomend professional`
+  }
+  // Voor de rest is leerjaar nodig
+  const jaar = leerjaar || 1
+  if (niveau === 'vmbo' && jaar <= 2) {
     return `
     - Gebruik maximaal 15 woorden per zin
     - Vermijd moeilijke woorden, leg uit als het moet
@@ -32,28 +52,28 @@ function getTaalInstructies(niveau: string, leerjaar: number): string {
     - Toon: vrolijk, bemoedigend, alsof je een vriend helpt
     - Spreek de leerling aan met 'je' en 'jij'`
   }
-  if (niveau === 'vmbo' && leerjaar >= 3) {
+  if (niveau === 'vmbo' && jaar >= 3) {
     return `
     - Gebruik maximaal 20 woorden per zin
     - Verwijs naar stage, beroepen, praktijk
     - Toon: behulpzaam, praktisch
     - Houd het concreet met voorbeelden`
   }
-  if (niveau === 'havo' && leerjaar <= 3) {
+  if (niveau === 'havo' && jaar <= 3) {
     return `
     - Normale zinsbouw, helder Nederlands
     - Verwijs naar schoolvakken en toetsen
     - Leg "waarom" uit, niet alleen "wat"
     - Toon: behulpzaam, stimulerend`
   }
-  if (niveau === 'havo' && leerjaar >= 4) {
+  if (niveau === 'havo' && jaar >= 4) {
     return `
     - Complexere zinsbouw toegestaan
     - Verwijs naar examenstof en vervolgopleidingen
     - Stel kritische vragen
     - Toon: uitdagend, ondersteunend`
   }
-  if (niveau === 'vwo' && leerjaar <= 3) {
+  if (niveau === 'vwo' && jaar <= 3) {
     return `
     - Introduceer academische termen waar relevant
     - Bied meerdere perspectieven
@@ -242,8 +262,9 @@ export async function POST(request: NextRequest) {
     const body: ChatRequest = await request.json()
     const { message, context } = body
 
-    // Validate input
-    if (!message || !context?.niveau || !context?.leerjaar || !context?.currentModule) {
+    // Validate input - leerjaar is optioneel voor mbo/hbo
+    const needsLeerjaar = context?.niveau !== 'mbo' && context?.niveau !== 'hbo'
+    if (!message || !context?.niveau || (needsLeerjaar && !context?.leerjaar) || !context?.currentModule) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }

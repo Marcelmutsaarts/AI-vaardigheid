@@ -11,13 +11,13 @@ import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, Lightbulb } from 'lucide
 import { kiesKleuren } from '@/lib/utils'
 import { promptOnderdelen, getOnderdeelLabel } from '@/lib/instrueren-content'
 
-// Voorbeeld prompt opgesplitst in onderdelen
-const voorbeeldPrompt = {
+// Voorbeeld prompt generator - past zich aan op niveau
+const getVoorbeeldPrompt = (schoolType: string, leerjaar: number) => ({
   rol: 'Je bent een vriendelijke docent Nederlands die goed kan uitleggen.',
-  context: 'Ik zit in 3 havo en werk aan een betoog over social media. Het moet 500 woorden zijn en ik moet minstens 2 bronnen gebruiken.',
+  context: `Ik zit in ${leerjaar} ${schoolType.toUpperCase()} en werk aan een betoog over social media. Het moet 500 woorden zijn en ik moet minstens 2 bronnen gebruiken.`,
   instructies: 'Geef me feedback op mijn inleiding. Let vooral op: is de stelling duidelijk? Trek ik de aandacht van de lezer? Geef 3 concrete tips om het te verbeteren.',
   voorbeeld: 'Geef je feedback in dit format:\n- Wat gaat goed: ...\n- Tip 1: ...\n- Tip 2: ...\n- Tip 3: ...',
-}
+})
 
 export default function I1Page() {
   const router = useRouter()
@@ -26,12 +26,16 @@ export default function I1Page() {
   const [bekendeOnderdelen, setBekendeOnderdelen] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
@@ -58,6 +62,8 @@ export default function I1Page() {
   const verplichtBekeken = promptOnderdelen
     .filter(o => o.verplicht)
     .every(o => bekendeOnderdelen.has(o.id))
+
+  const voorbeeldPrompt = getVoorbeeldPrompt(niveau.schoolType!, niveau.leerjaar!)
 
   const getVoorbeeldTekst = (id: string) => {
     return voorbeeldPrompt[id as keyof typeof voorbeeldPrompt] || ''
@@ -175,20 +181,23 @@ export default function I1Page() {
           {/* Complete prompt voorbeeld */}
           <div className="bg-white rounded-xl border shadow-sm p-4 mb-6">
             <h3 className="font-semibold text-gray-900 mb-3">De complete prompt</h3>
-            <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-gray-100 whitespace-pre-wrap">
-              <span className="text-purple-400">{voorbeeldPrompt.rol}</span>
-              {'\n\n'}
-              <span className="text-blue-400">{voorbeeldPrompt.context}</span>
-              {'\n\n'}
-              <span className="text-green-400">{voorbeeldPrompt.instructies}</span>
-              {'\n\n'}
-              <span className="text-yellow-400">{voorbeeldPrompt.voorbeeld}</span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">1. Rol</span>
-              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">2. Context</span>
-              <span className="bg-green-100 text-green-700 px-2 py-1 rounded">3. Instructies</span>
-              <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded">4. Voorbeeld</span>
+            <div className="space-y-3">
+              <div className="bg-purple-50 border-l-4 border-purple-400 p-3 rounded-r-lg">
+                <span className="text-xs font-medium text-purple-600 block mb-1">1. Rol</span>
+                <p className="text-sm text-gray-700">{voorbeeldPrompt.rol}</p>
+              </div>
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
+                <span className="text-xs font-medium text-blue-600 block mb-1">2. Context</span>
+                <p className="text-sm text-gray-700">{voorbeeldPrompt.context}</p>
+              </div>
+              <div className="bg-green-50 border-l-4 border-green-400 p-3 rounded-r-lg">
+                <span className="text-xs font-medium text-green-600 block mb-1">3. Instructies</span>
+                <p className="text-sm text-gray-700">{voorbeeldPrompt.instructies}</p>
+              </div>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-lg">
+                <span className="text-xs font-medium text-yellow-600 block mb-1">4. Voorbeeld</span>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{voorbeeldPrompt.voorbeeld}</p>
+              </div>
             </div>
           </div>
 

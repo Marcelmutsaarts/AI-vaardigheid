@@ -33,12 +33,16 @@ export default function SpelregelsOverzicht() {
   const { niveau, progress } = useNiveau()
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
@@ -69,7 +73,8 @@ export default function SpelregelsOverzicht() {
             >
               S
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Spelregels</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Spelregels</h1>
+            <p className="text-gray-600">Klik op een onderdeel om te beginnen</p>
           </div>
 
           {/* Modules */}

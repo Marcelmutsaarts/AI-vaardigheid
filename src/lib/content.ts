@@ -1,17 +1,21 @@
 // Content per niveau categorie
-export type NiveauCategorie = 'vmbo-1-2' | 'vmbo-3-4' | 'havo-1-3' | 'havo-4-5' | 'vwo-1-3' | 'vwo-4-6'
+export type NiveauCategorie = 'vmbo-1-2' | 'vmbo-3-4' | 'havo-1-3' | 'havo-4-5' | 'vwo-1-3' | 'vwo-4-6' | 'mbo' | 'hbo'
 
 export function getNiveauCategorie(
-  schoolType: 'vmbo' | 'havo' | 'vwo',
-  leerjaar: number
+  schoolType: 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo',
+  leerjaar: number | null
 ): NiveauCategorie {
+  if (schoolType === 'mbo') return 'mbo'
+  if (schoolType === 'hbo') return 'hbo'
+
+  const jaar = leerjaar || 1
   if (schoolType === 'vmbo') {
-    return leerjaar <= 2 ? 'vmbo-1-2' : 'vmbo-3-4'
+    return jaar <= 2 ? 'vmbo-1-2' : 'vmbo-3-4'
   }
   if (schoolType === 'havo') {
-    return leerjaar <= 3 ? 'havo-1-3' : 'havo-4-5'
+    return jaar <= 3 ? 'havo-1-3' : 'havo-4-5'
   }
-  return leerjaar <= 3 ? 'vwo-1-3' : 'vwo-4-6'
+  return jaar <= 3 ? 'vwo-1-3' : 'vwo-4-6'
 }
 
 // Kiezen Module 1: Wat kan AI wel en niet?
@@ -240,6 +244,77 @@ export const kiezenModule1Content: Record<NiveauCategorie, {
         { text: 'AI laten zoeken naar relevante bronnen en deze overnemen', correct: false, feedback: 'Riskant: AI kan bronnen verzinnen of verkeerd citeren. Academische integriteit vereist dat je bronnen zelf verifieert.' },
         { text: 'AI gebruiken om je zoekstrategie te verfijnen en begrippen te verkennen', correct: true, feedback: 'Dit is een verantwoorde aanpak: AI helpt je denken structureren, maar de academische verificatie blijft bij jou.' },
         { text: 'AI alleen gebruiken voor tekstredactie, niet voor inhoud', correct: false, feedback: 'AI kan ook inhoudelijk waardevol zijn, mits kritisch toegepast. De sleutel is verificatie en transparantie.' },
+      ],
+    },
+  },
+  'mbo': {
+    title: 'Wat kan AI wel en niet?',
+    intro: 'In je beroepspraktijk ga je AI tegenkomen. Het is belangrijk te weten waar AI goed in is en waar je zelf de regie moet houden.',
+    sections: [
+      {
+        heading: 'Waar is AI goed in?',
+        content: 'AI kan je ondersteunen bij:',
+        examples: [
+          'Teksten schrijven en verbeteren (mails, verslagen)',
+          'Informatie opzoeken en samenvatten',
+          'Brainstormen over oplossingen',
+          'Vertalen en communicatie',
+          'Oefenen voor gesprekken of presentaties',
+        ],
+      },
+      {
+        heading: 'Waar moet je opletten?',
+        content: 'AI heeft ook beperkingen:',
+        examples: [
+          'AI maakt fouten - controleer altijd!',
+          'AI kent jouw specifieke werksituatie niet',
+          'AI kan niet inspelen op emoties of relaties',
+          'AI vervangt geen vakmanschap of ervaring',
+          'Vertrouwelijke bedrijfsinfo hoort niet in AI',
+        ],
+      },
+    ],
+    exercise: {
+      question: 'Je moet een klacht van een klant beantwoorden. Hoe gebruik je AI het beste?',
+      options: [
+        { text: 'AI het antwoord laten schrijven en versturen', correct: false, feedback: 'Niet slim! AI kent de specifieke situatie niet en kan de verkeerde toon aanslaan bij een klacht.' },
+        { text: 'Zelf een concept schrijven en AI om verbeterpunten vragen', correct: true, feedback: 'Goed! Zo houd je de regie en gebruik je AI als hulpmiddel voor een professionelere tekst.' },
+      ],
+    },
+  },
+  'hbo': {
+    title: 'Wat kan AI wel en niet?',
+    intro: 'Als professional moet je AI effectief kunnen inzetten én de beperkingen kennen. Dit is essentieel voor verantwoord gebruik in je vakgebied.',
+    sections: [
+      {
+        heading: 'Mogelijkheden van AI',
+        content: 'AI-systemen bieden ondersteuning bij:',
+        examples: [
+          'Complexe tekstproductie en -analyse',
+          'Onderzoek en literatuurverkenning (met verificatie)',
+          'Structureren van projecten en rapporten',
+          'Data-analyse en patroonherkenning',
+          'Professionele communicatie in meerdere talen',
+        ],
+      },
+      {
+        heading: 'Kritische kanttekeningen',
+        content: 'Bij professioneel gebruik moet je rekening houden met:',
+        examples: [
+          'Hallucinaties: AI genereert soms plausibele maar onjuiste informatie',
+          'Geen actuele kennis: trainingsdata heeft een einddatum',
+          'Privacy en vertrouwelijkheid: wat je invoert wordt mogelijk opgeslagen',
+          'Bias in output: AI weerspiegelt vooroordelen uit trainingsdata',
+          'Geen professioneel oordeel: AI vervangt geen expertise',
+        ],
+      },
+    ],
+    exercise: {
+      question: 'Voor een onderzoeksvoorstel wil je AI gebruiken. Wat is de beste aanpak?',
+      options: [
+        { text: 'AI het voorstel laten schrijven op basis van je onderzoeksvraag', correct: false, feedback: 'Dit ondermijnt de academische waarde. Een voorstel moet jouw originele denken en methodologische keuzes tonen.' },
+        { text: 'AI gebruiken om je literatuurverkenning te structureren en feedback op je concept te krijgen', correct: true, feedback: 'Dit is verantwoord gebruik: AI als sparringpartner, terwijl het intellectuele eigendom bij jou blijft.' },
+        { text: 'AI volledig vermijden bij academisch werk', correct: false, feedback: 'AI kan waardevol zijn als hulpmiddel, mits transparant en kritisch toegepast.' },
       ],
     },
   },
@@ -475,6 +550,76 @@ export const kiezenModule2Content: Record<NiveauCategorie, {
             { text: 'Bij het formuleren van je onderzoeksvraag', correct: false, feedback: 'De onderzoeksvraag moet uit JOUW nieuwsgierigheid komen. AI kan helpen verfijnen, maar niet bedenken.' },
             { text: 'Bij het verkennen van theoretische kaders', correct: true, feedback: 'Goed! AI kan helpen theorieën te verkennen, mits je vervolgens de primaire bronnen zelf bestudeert.' },
             { text: 'Bij het schrijven van je conclusie', correct: false, feedback: 'De conclusie moet JOUW analyse weerspiegelen. Dit is het hart van academisch werk.' },
+          ],
+        },
+      ],
+    },
+  },
+  'mbo': {
+    title: 'Wanneer kies je voor AI?',
+    intro: 'In je opleiding en straks op de werkvloer is het belangrijk te weten wanneer AI je kan helpen en wanneer je beter zelf aan de slag gaat.',
+    welAI: {
+      title: 'Wanneer WEL AI?',
+      items: [
+        'Informatie opzoeken over je vakgebied',
+        'Hulp bij het schrijven van verslagen of mails',
+        'Oefenen voor een gesprek of presentatie',
+        'Brainstormen over oplossingen voor praktijkproblemen',
+        'Feedback vragen op je werk',
+      ],
+    },
+    nietAI: {
+      title: 'Wanneer NIET AI?',
+      items: [
+        'Praktijkopdrachten waar je vaardigheden moet tonen',
+        'Toetsen en examens',
+        'Situaties waar je eigen oordeel nodig is',
+        'Vertrouwelijke klant- of bedrijfsinformatie',
+        'Als je de basis nog moet leren',
+      ],
+    },
+    exercise: {
+      scenarios: [
+        {
+          situation: 'Je moet voor je stage een werkplan maken. Hoe zet je AI in?',
+          options: [
+            { text: 'AI het hele werkplan laten schrijven', correct: false, feedback: 'Niet slim! Het werkplan moet laten zien dat JIJ de situatie begrijpt en een plan kunt maken.' },
+            { text: 'Zelf een concept maken en AI om feedback vragen', correct: true, feedback: 'Goed! Zo laat je zien wat je kunt en gebruik je AI om het nog beter te maken.' },
+          ],
+        },
+      ],
+    },
+  },
+  'hbo': {
+    title: 'Wanneer kies je voor AI?',
+    intro: 'Als aankomend professional moet je AI strategisch kunnen inzetten. Dit vraagt om een bewuste afweging tussen efficiëntie en het ontwikkelen van je eigen expertise.',
+    welAI: {
+      title: 'AI ondersteunt bij:',
+      items: [
+        'Verkennen van literatuur en theoretische kaders',
+        'Structureren van complexe projecten',
+        'Feedback op conceptteksten en argumentatie',
+        'Analyseren van data en patronen',
+        'Professionele communicatie verfijnen',
+      ],
+    },
+    nietAI: {
+      title: 'AI ondermijnt ontwikkeling bij:',
+      items: [
+        'Ontwikkelen van professioneel oordeelsvermogen',
+        'Creatieve en innovatieve oplossingen bedenken',
+        'Ethische afwegingen in je vakgebied',
+        'Summatieve toetsen en eindproducten',
+        'Werk met vertrouwelijke informatie',
+      ],
+    },
+    exercise: {
+      scenarios: [
+        {
+          situation: 'Je schrijft een adviesrapport voor een opdrachtgever. Hoe zet je AI verantwoord in?',
+          options: [
+            { text: 'AI het rapport laten schrijven en zelf controleren', correct: false, feedback: 'Dit is problematisch: het advies moet gebaseerd zijn op JOUW professionele analyse en kennis van de situatie.' },
+            { text: 'Zelf analyseren en adviseren, AI gebruiken voor structuur en taalgebruik', correct: true, feedback: 'Precies! Het professionele oordeel is van jou, AI helpt bij de presentatie.' },
           ],
         },
       ],

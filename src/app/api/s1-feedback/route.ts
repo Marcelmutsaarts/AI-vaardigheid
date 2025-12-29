@@ -4,7 +4,7 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'google/gemini-3-flash-preview'
 
 type Categorie = 'van-mij' | 'van-anderen' | 'geheim'
-type Niveau = 'vmbo' | 'havo' | 'vwo'
+type Niveau = 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo'
 
 interface FeedbackRequest {
   categorie: Categorie
@@ -42,6 +42,14 @@ const niveauStijl: Record<Niveau, string> = {
 - Mag wat abstracter
 - Benoem het principe erachter
 - Intellectueel maar toegankelijk`,
+  mbo: `Schrijf voor een MBO-student:
+- Normale zinsbouw, helder
+- Praktisch en beroepsgericht
+- Verwijs naar werksituaties`,
+  hbo: `Schrijf voor een HBO-student:
+- Professioneel taalgebruik
+- Benoem het principe erachter
+- Verwijs naar beroepspraktijk`,
 }
 
 function buildPrompt(categorie: Categorie, antwoord: string, niveau: Niveau): string {
@@ -50,24 +58,22 @@ function buildPrompt(categorie: Categorie, antwoord: string, niveau: Niveau): st
 
   const extraUitleg = ctx.uitleg ? `\nExtra context voor deze categorie: ${ctx.uitleg}` : ''
 
-  return `Je geeft feedback aan een leerling over wat ze niet zouden delen met AI.
+  return `Geef korte feedback op wat een leerling niet zou delen met AI.
 
 Categorie: ${ctx.titel}
-Achterliggende reden: ${ctx.risico}${extraUitleg}
+Risico: ${ctx.risico}${extraUitleg}
 
-De leerling schreef: "${antwoord}"
+Leerling schreef: "${antwoord}"
 
 ${stijl}
 
-Geef feedback in 2-3 zinnen:
-1. Bevestig kort wat de leerling goed bedacht heeft
-2. Leg uit WAAROM dit slim is (de reden, niet bangmakerij)
-3. Voeg eventueel 1 item toe dat ze missen (alleen als echt belangrijk)
-${categorie === 'geheim' ? '4. Als de leerling niet goed lijkt te begrijpen wat vertrouwelijk betekent, leg dit dan eerst kort uit.' : ''}
+REGELS:
+- Maximaal 2 zinnen
+- Zeg wat goed is + kort waarom
+- Praktisch, niet angstaanjagend
+${categorie === 'geheim' ? '- Leg uit wat vertrouwelijk betekent als nodig' : ''}
 
-Wees realistisch en praktisch, niet dramatisch of angstaanjagend. Het gaat erom dat ze begrijpen waarom nadenken belangrijk is.
-
-Als het antwoord leeg of onzin is, vraag vriendelijk om een serieus antwoord.`
+Bij leeg/onzin antwoord: vraag om serieus antwoord.`
 }
 
 export async function POST(request: NextRequest) {

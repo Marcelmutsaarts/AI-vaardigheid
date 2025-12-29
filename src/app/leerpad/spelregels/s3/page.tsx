@@ -29,10 +29,22 @@ const niveauTeksten = {
     tip: 'Zet AI in waar het waarde toevoegt - voor leren en productiviteit. Niet voor eindeloos plaatjes genereren.',
   },
   vwo: {
-    intro: 'Over AI en duurzaamheid circuleren nogal wat claims. De werkelijkheid is genuanceerder dan de koppen suggereren.',
-    vraag: 'Hoeveel tekst-prompts aan een LLM verbruiken evenveel energie als één uur videostreaming?',
-    uitleg: 'Large Language Models voor tekst zijn energetisch relatief efficiënt. De grote verschillen ontstaan bij multimodale modellen: beeldgeneratie verbruikt ~50x meer dan tekst, videogeneratie nog aanzienlijk meer.',
+    intro: 'Je hoort veel beweringen over AI en energieverbruik. De werkelijkheid is genuanceerder dan de koppen suggereren.',
+    vraag: 'Hoeveel tekst-vragen aan ChatGPT kosten evenveel energie als één uur videostreaming?',
+    uitleg: 'AI-chatbots voor tekst zijn energetisch relatief efficiënt. De grote verschillen ontstaan bij andere AI-toepassingen: beeldgeneratie verbruikt ~50x meer dan tekst, videogeneratie nog aanzienlijk meer.',
     tip: 'Bewust gebruik is de sleutel. AI inzetten voor leren en ontwikkeling is de energie waard - mindloos content genereren niet.',
+  },
+  mbo: {
+    intro: 'Op je werk of stage zul je AI gaan gebruiken. Goed om te weten hoeveel energie dat kost - want niet alles wat je hoort klopt.',
+    vraag: 'Hoeveel ChatGPT-vragen kun je stellen voor dezelfde stroom als 1 uur Netflix kijken?',
+    uitleg: 'Tekst-AI is best zuinig. Afbeeldingen genereren kost veel meer energie. En video\'s maken nog veel meer.',
+    tip: 'Gebruik AI slim voor je werk en opleiding. Dat is de energie waard - eindeloos plaatjes genereren niet.',
+  },
+  hbo: {
+    intro: 'AI wordt steeds belangrijker in je beroep. Er wordt veel gezegd over energieverbruik - tijd om dat te nuanceren.',
+    vraag: 'Hoeveel tekst-vragen aan ChatGPT kosten evenveel energie als één uur Netflix streamen?',
+    uitleg: 'Tekst-gebaseerde AI is energetisch efficiënt. De impact zit vooral bij beeldgeneratie (~50x meer) en videogeneratie (nog veel meer).',
+    tip: 'Professioneel AI-gebruik voor productiviteit en ontwikkeling is de energie waard. Bewust omgaan met generatieve content is de sleutel.',
   },
 }
 
@@ -46,7 +58,9 @@ export default function S3Page() {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
@@ -78,16 +92,22 @@ export default function S3Page() {
     }
   }, [gekozenAntwoord, toonResultaat, toonAfronding, isLoaded])
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
   // Bepaal niveau-teksten
-  const teksten = niveau.schoolType === 'vmbo'
-    ? niveauTeksten.vmbo
-    : niveau.schoolType === 'havo'
-      ? niveauTeksten.havo
-      : niveauTeksten.vwo
+  const teksten = niveau.schoolType === 'mbo'
+    ? niveauTeksten.mbo
+    : niveau.schoolType === 'hbo'
+      ? niveauTeksten.hbo
+      : niveau.schoolType === 'vmbo'
+        ? niveauTeksten.vmbo
+        : niveau.schoolType === 'havo'
+          ? niveauTeksten.havo
+          : niveauTeksten.vwo
 
   const handleKiesAntwoord = (antwoord: Antwoord) => {
     setGekozenAntwoord(antwoord)

@@ -133,7 +133,7 @@ export const voorbeeldMeningen = [
 ]
 
 // Niveau-specifieke teksten
-export function getMensAIMensTekst(niveau: 'vmbo' | 'havo' | 'vwo'): {
+export function getMensAIMensTekst(niveau: 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo'): {
   intro: string
   stap1: string
   stap2: string
@@ -157,6 +157,26 @@ export function getMensAIMensTekst(niveau: 'vmbo' | 'havo' | 'vwo'): {
       stap2: 'AI genereert output',
       stap3: 'Jij evalueert deze output kritisch',
       conclusie: 'Vertrouw niet blind op AI. Check altijd zelf!'
+    }
+  }
+
+  if (niveau === 'mbo') {
+    return {
+      intro: 'Op de werkvloer bepaal jij hoe je AI inzet.',
+      stap1: 'Jij bepaalt wanneer AI nuttig is voor je werk',
+      stap2: 'AI genereert output',
+      stap3: 'Jij checkt of de output klopt en bruikbaar is',
+      conclusie: 'In je beroep draag jij de verantwoordelijkheid, niet de AI.'
+    }
+  }
+
+  if (niveau === 'hbo') {
+    return {
+      intro: 'Als professional neem jij verantwoordelijkheid voor AI-gebruik.',
+      stap1: 'Jij maakt een onderbouwde keuze over AI-inzet',
+      stap2: 'AI genereert output',
+      stap3: 'Jij evalueert kritisch en toetst aan vakkennis',
+      conclusie: 'Professionele verantwoordelijkheid blijft altijd bij jou.'
     }
   }
 

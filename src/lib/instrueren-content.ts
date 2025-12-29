@@ -139,7 +139,7 @@ export function getRolById(rolId: string): AIRol | undefined {
 // Niveau-specifieke labels voor de onderdelen
 export function getOnderdeelLabel(
   onderdeel: PromptOnderdeel,
-  niveau: 'vmbo' | 'havo' | 'vwo'
+  niveau: 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo'
 ): { vraag: string; tip: string } {
   // VMBO krijgt simpelere taal
   if (niveau === 'vmbo') {
@@ -163,6 +163,58 @@ export function getOnderdeelLabel(
         return {
           vraag: 'Hoe wil je het?',
           tip: 'Laat zien hoe het eruit moet zien'
+        }
+    }
+  }
+
+  // MBO krijgt praktische, beroepsgerichte taal
+  if (niveau === 'mbo') {
+    switch (onderdeel.id) {
+      case 'rol':
+        return {
+          vraag: 'Welke rol geef je de AI?',
+          tip: 'Denk aan: "Je bent een ervaren vakman/collega/leidinggevende..."'
+        }
+      case 'context':
+        return {
+          vraag: 'Wat moet de AI weten over de situatie?',
+          tip: 'Beschrijf je stage, opleiding, of werksituatie'
+        }
+      case 'instructies':
+        return {
+          vraag: 'Wat moet de AI voor je doen?',
+          tip: 'Wees concreet: wat, hoeveel, in welk format?'
+        }
+      case 'voorbeeld':
+        return {
+          vraag: 'Hoe moet het resultaat eruitzien?',
+          tip: 'Geef een voorbeeld van het gewenste eindresultaat'
+        }
+    }
+  }
+
+  // HBO krijgt professionele taal
+  if (niveau === 'hbo') {
+    switch (onderdeel.id) {
+      case 'rol':
+        return {
+          vraag: 'Welke expertise geef je de AI?',
+          tip: 'Definieer de rol: "Je bent een senior professional/onderzoeker/consultant..."'
+        }
+      case 'context':
+        return {
+          vraag: 'Welke context is relevant voor de AI?',
+          tip: 'Schets de professionele situatie, opdrachtgever, of onderzoeksvraag'
+        }
+      case 'instructies':
+        return {
+          vraag: 'Welke output verwacht je?',
+          tip: 'Specificeer format, omvang, bronverwijzingen, en kwaliteitseisen'
+        }
+      case 'voorbeeld':
+        return {
+          vraag: 'Welk format of template moet gevolgd worden?',
+          tip: 'Verwijs naar standaarden, richtlijnen of voorbeelden'
         }
     }
   }

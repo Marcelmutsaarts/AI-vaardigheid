@@ -16,9 +16,13 @@ export default function Home() {
   const [selectedJaar, setSelectedJaar] = useState<number | null>(null)
 
   // If user already has niveau set, redirect to dashboard
-  if (niveau.schoolType && niveau.leerjaar) {
-    router.push('/dashboard')
-    return null
+  // MBO/HBO hebben geen leerjaar, dus alleen schoolType checken voor die gevallen
+  if (niveau.schoolType) {
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!needsLeerjaar || niveau.leerjaar) {
+      router.push('/dashboard')
+      return null
+    }
   }
 
   const getLeerjaarOptions = (type: SchoolType): number[] => {
@@ -29,11 +33,19 @@ export default function Home() {
         return [1, 2, 3, 4, 5]
       case 'vwo':
         return [1, 2, 3, 4, 5, 6]
+      case 'mbo':
+      case 'hbo':
+        return [] // Geen leerjaar selectie voor mbo/hbo
     }
   }
 
+  // Check of leerjaar selectie nodig is
+  const needsLeerjaar = selectedType && selectedType !== 'mbo' && selectedType !== 'hbo'
+
   const handleStart = () => {
-    if (selectedType && selectedJaar) {
+    if (selectedType) {
+      // MBO/HBO hebben geen leerjaar, anderen wel
+      if (needsLeerjaar && !selectedJaar) return
       setNiveau(selectedType, selectedJaar)
       router.push('/dashboard')
     }
@@ -87,7 +99,7 @@ export default function Home() {
                 Word <span className="text-primary">AI-vaardig</span> met het KIES-framework
               </h1>
               <p className="text-lg md:text-xl text-gray-600 mb-12">
-                Leer hoe je slim en verantwoord met AI omgaat. Voor leerlingen in het voortgezet onderwijs.
+                Leer hoe je slim en verantwoord met AI omgaat.
               </p>
 
               {/* Niveau Selection */}
@@ -98,15 +110,15 @@ export default function Home() {
                   </h2>
 
                   {/* School type selection */}
-                  <div className="flex justify-center gap-4 mb-8">
-                    {(['vmbo', 'havo', 'vwo'] as const).map((type) => (
+                  <div className="flex justify-center gap-3 mb-8 flex-wrap">
+                    {(['vmbo', 'havo', 'vwo', 'mbo', 'hbo'] as const).map((type) => (
                       <button
                         key={type}
                         onClick={() => {
                           setSelectedType(type)
                           setSelectedJaar(null)
                         }}
-                        className={`px-6 py-3 rounded-lg font-semibold text-lg transition-all ${
+                        className={`px-5 py-3 rounded-lg font-semibold text-lg transition-all ${
                           selectedType === type
                             ? 'bg-primary text-white shadow-lg scale-105'
                             : 'bg-gray-100 text-gray-700 hover:bg-primary-light'
@@ -117,8 +129,8 @@ export default function Home() {
                     ))}
                   </div>
 
-                  {/* Leerjaar selection */}
-                  {selectedType && (
+                  {/* Leerjaar selection - alleen voor vmbo/havo/vwo */}
+                  {needsLeerjaar && (
                     <div className="mb-8 animate-in fade-in slide-in-from-top-2 duration-300">
                       <h3 className="text-lg font-medium text-gray-700 mb-4">
                         In welk leerjaar zit je?
@@ -141,8 +153,8 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* Start button */}
-                  {selectedType && selectedJaar && (
+                  {/* Start button - toon voor mbo/hbo direct, voor anderen na leerjaar selectie */}
+                  {selectedType && (!needsLeerjaar || selectedJaar) && (
                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                       <Button
                         onClick={handleStart}

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-export type SchoolType = 'vmbo' | 'havo' | 'vwo'
+export type SchoolType = 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo'
 
 export interface NiveauSettings {
   schoolType: SchoolType | null
@@ -11,15 +11,15 @@ export interface NiveauSettings {
 
 export interface Progress {
   kiezen: { k1: boolean; k2: boolean }
-  instrueren: { i1: boolean; i2: boolean; i3: boolean }
-  evalueren: { e1: boolean; e2: boolean; e3: boolean }
+  instrueren: { i1: boolean; i2: boolean }
+  evalueren: { e1: boolean; e2: boolean }
   spelregels: { s1: boolean; s2: boolean; s3: boolean }
 }
 
 interface NiveauContextType {
   niveau: NiveauSettings
   progress: Progress
-  setNiveau: (schoolType: SchoolType, leerjaar: number) => void
+  setNiveau: (schoolType: SchoolType, leerjaar: number | null) => void
   updateProgress: (kiesLetter: keyof Progress, module: string, completed: boolean) => void
   resetProgress: () => void
   getNiveauLabel: () => string
@@ -28,8 +28,8 @@ interface NiveauContextType {
 
 const defaultProgress: Progress = {
   kiezen: { k1: false, k2: false },
-  instrueren: { i1: false, i2: false, i3: false },
-  evalueren: { e1: false, e2: false, e3: false },
+  instrueren: { i1: false, i2: false },
+  evalueren: { e1: false, e2: false },
   spelregels: { s1: false, s2: false, s3: false },
 }
 
@@ -69,30 +69,30 @@ export function NiveauProvider({ children }: { children: ReactNode }) {
 
   // Save to localStorage when niveau changes
   useEffect(() => {
-    if (isLoaded && niveau.schoolType && niveau.leerjaar) {
+    // Voor mbo/hbo is leerjaar null, dus alleen schoolType checken
+    if (isLoaded && niveau.schoolType) {
       localStorage.setItem('kies-niveau', JSON.stringify(niveau))
     }
   }, [niveau, isLoaded])
 
-  // Save progress to localStorage
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem('kies-progress', JSON.stringify(progress))
-    }
-  }, [progress, isLoaded])
+  // Progress wordt direct opgeslagen in updateProgress() - geen useEffect nodig
 
-  const setNiveau = (schoolType: SchoolType, leerjaar: number) => {
+  const setNiveau = (schoolType: SchoolType, leerjaar: number | null) => {
     setNiveauState({ schoolType, leerjaar })
   }
 
   const updateProgress = (kiesLetter: keyof Progress, module: string, completed: boolean) => {
-    setProgress(prev => ({
-      ...prev,
+    // Eerst synchroon naar localStorage schrijven
+    const newProgress = {
+      ...progress,
       [kiesLetter]: {
-        ...prev[kiesLetter],
+        ...progress[kiesLetter],
         [module]: completed,
       },
-    }))
+    }
+    localStorage.setItem('kies-progress', JSON.stringify(newProgress))
+    // Dan pas state updaten
+    setProgress(newProgress)
   }
 
   const resetProgress = () => {
@@ -101,7 +101,12 @@ export function NiveauProvider({ children }: { children: ReactNode }) {
   }
 
   const getNiveauLabel = (): string => {
-    if (!niveau.schoolType || !niveau.leerjaar) return ''
+    if (!niveau.schoolType) return ''
+    // MBO en HBO hebben geen leerjaar
+    if (niveau.schoolType === 'mbo' || niveau.schoolType === 'hbo') {
+      return niveau.schoolType.toUpperCase()
+    }
+    if (!niveau.leerjaar) return ''
     return `${niveau.schoolType.toUpperCase()} ${niveau.leerjaar}`
   }
 
@@ -113,6 +118,9 @@ export function NiveauProvider({ children }: { children: ReactNode }) {
         return [1, 2, 3, 4, 5]
       case 'vwo':
         return [1, 2, 3, 4, 5, 6]
+      case 'mbo':
+      case 'hbo':
+        return [] // Geen leerjaar selectie voor mbo/hbo
       default:
         return []
     }

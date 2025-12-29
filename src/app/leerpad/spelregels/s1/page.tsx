@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
+import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
 
 type CategorieId = 'van-mij' | 'van-anderen' | 'geheim'
 
@@ -63,7 +64,9 @@ export default function S1Page() {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
@@ -90,7 +93,9 @@ export default function S1Page() {
     }
   }, [antwoorden, feedback, isLoaded])
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
@@ -205,8 +210,8 @@ export default function S1Page() {
 
                 {/* Feedback */}
                 {feedback[cat.id] && (
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm text-gray-700">
-                    {feedback[cat.id]}
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                    {formatMarkdownWithNewlines(feedback[cat.id])}
                   </div>
                 )}
               </div>

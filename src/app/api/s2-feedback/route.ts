@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'google/gemini-3-flash-preview'
 
-type Niveau = 'vmbo' | 'havo' | 'vwo'
+type Niveau = 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo'
 
 interface Stap {
   titel: string
@@ -32,6 +32,14 @@ const niveauStijl: Record<Niveau, string> = {
 - Mag wat abstracter
 - Benoem het principe erachter
 - Intellectueel maar toegankelijk`,
+  mbo: `Schrijf voor een MBO-student:
+- Normale zinsbouw, helder
+- Praktisch en beroepsgericht
+- Verwijs naar werksituaties`,
+  hbo: `Schrijf voor een HBO-student:
+- Professioneel taalgebruik
+- Benoem het principe erachter
+- Verwijs naar beroepspraktijk`,
 }
 
 function buildPrompt(opdracht: string, stappen: Stap[], reflectie: string, niveau: Niveau): string {
@@ -46,28 +54,23 @@ function buildPrompt(opdracht: string, stappen: Stap[], reflectie: string, nivea
   const aiHelptCount = stappen.filter(s => s.aanpak === 'aihelpt').length
   const zelfCount = stappen.filter(s => s.aanpak === 'zelf').length
 
-  return `Je geeft feedback aan een leerling over transparantie bij AI-gebruik.
+  return `Geef korte feedback over transparantie bij AI-gebruik.
 
-De leerling heeft dit plan gemaakt voor de opdracht "${opdracht}":
+Plan voor "${opdracht}":
 ${stappenBeschrijving}
+(${aiDoetCount}x AI doet, ${aiHelptCount}x AI helpt, ${zelfCount}x zelf)
 
-Analyse: ${aiDoetCount} stappen waar AI het werk doet, ${aiHelptCount} stappen waar AI helpt, ${zelfCount} stappen zelf.
-
-De leerling schreef over of ze AI-gebruik zouden melden: "${reflectie}"
+Leerling over melden: "${reflectie}"
 
 ${stijl}
 
-Geef feedback in 2-3 korte zinnen:
-1. Reageer kort op hun antwoord
-2. Geef één concrete suggestie hoe ze dit kunnen melden (bijv. "Ik heb AI gebruikt voor...")
+REGELS:
+- Maximaal 2 zinnen
+- Reageer op hun antwoord
+- Geef 1 concrete melding-suggestie als nodig
+- AI helpt = meestal niet melden, AI doet kernwerk = wel melden
 
-Belangrijke punten:
-- Als AI alleen helpt (uitleg, feedback), hoef je dat meestal niet te melden
-- Als AI hele teksten schrijft of het kernwerk doet, moet je dat wel melden
-- De vraag is: zou de ander willen weten dat je AI gebruikte?
-- Wees praktisch en eerlijk, niet preachy
-
-Als het antwoord leeg of onzin is, vraag vriendelijk om een serieus antwoord.`
+Bij leeg/onzin antwoord: vraag om serieus antwoord.`
 }
 
 export async function POST(request: NextRequest) {

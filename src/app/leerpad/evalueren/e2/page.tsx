@@ -56,12 +56,16 @@ export default function E2Page() {
   const [sycFeedbackGetoond, setSycFeedbackGetoond] = useState(false)
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
@@ -217,7 +221,7 @@ Geef je antwoord in EXACT dit JSON format:
   // Afronden
   const handleComplete = () => {
     updateProgress('evalueren', 'e2', true)
-    router.push('/dashboard')
+    router.push('/leerpad/spelregels/s1')
   }
 
   // Huidige valkuil info

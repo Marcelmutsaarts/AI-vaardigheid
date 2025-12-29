@@ -39,6 +39,7 @@ interface K2State {
   stappen: Stap[]
   totaalLeren: number | null // -1 = minder, 0 = gelijk, 1 = meer (t.o.v. alles zelf)
   totaalKwaliteit: number | null // -1 = lager, 0 = gelijk, 1 = hoger (t.o.v. alles zelf)
+  totaalSnelheid: number | null // -1 = langzamer, 0 = gelijk, 1 = sneller (t.o.v. alles zelf)
 }
 
 export default function K2Page() {
@@ -49,6 +50,7 @@ export default function K2Page() {
   const [stappen, setStappen] = useState<Stap[]>([])
   const [totaalLeren, setTotaalLeren] = useState<number | null>(null)
   const [totaalKwaliteit, setTotaalKwaliteit] = useState<number | null>(null)
+  const [totaalSnelheid, setTotaalSnelheid] = useState<number | null>(null)
   const [nieuweStap, setNieuweStap] = useState('')
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
@@ -66,7 +68,7 @@ export default function K2Page() {
 
   // Experimenteer state
   const [wilVerbeteren, setWilVerbeteren] = useState(false)
-  const [verbeterOptie, setVerbeterOptie] = useState<'leren' | 'kwaliteit' | null>(null)
+  const [verbeterOptie, setVerbeterOptie] = useState<'leren' | 'kwaliteit' | 'snelheid' | null>(null)
   const [isAanpassen, setIsAanpassen] = useState(false)
 
   // Load saved state from localStorage
@@ -78,8 +80,9 @@ export default function K2Page() {
         if (state.phase) setPhase(state.phase)
         if (state.gekozenOpdracht) setGekozenOpdracht(state.gekozenOpdracht)
         if (state.stappen) setStappen(state.stappen)
-        if (state.totaalLeren) setTotaalLeren(state.totaalLeren)
-        if (state.totaalKwaliteit) setTotaalKwaliteit(state.totaalKwaliteit)
+        if (state.totaalLeren !== undefined) setTotaalLeren(state.totaalLeren)
+        if (state.totaalKwaliteit !== undefined) setTotaalKwaliteit(state.totaalKwaliteit)
+        if (state.totaalSnelheid !== undefined) setTotaalSnelheid(state.totaalSnelheid)
       } catch (e) {
         console.error('Error loading K2 state:', e)
       }
@@ -90,13 +93,15 @@ export default function K2Page() {
   // Save state to localStorage when it changes
   useEffect(() => {
     if (isLoaded) {
-      const state: K2State = { phase, gekozenOpdracht, stappen, totaalLeren, totaalKwaliteit }
+      const state: K2State = { phase, gekozenOpdracht, stappen, totaalLeren, totaalKwaliteit, totaalSnelheid }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     }
-  }, [phase, gekozenOpdracht, stappen, totaalLeren, totaalKwaliteit, isLoaded])
+  }, [phase, gekozenOpdracht, stappen, totaalLeren, totaalKwaliteit, totaalSnelheid, isLoaded])
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
@@ -172,7 +177,9 @@ Houd het heel kort en concreet.`,
     }
   }
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
@@ -209,6 +216,35 @@ Houd het heel kort en concreet.`,
     setStappen(prev => prev.filter(s => s.id !== id))
   }
 
+  // Haal alle AI-helpt rollen op die al gekozen zijn voor stappen met dezelfde titel
+  const getGekozenAiHelptRollen = (stapTitel: string): string[] => {
+    return stappen
+      .filter(s => s.titel === stapTitel && s.aanpak === 'aihelpt' && s.rol)
+      .map(s => s.rol!)
+  }
+
+  // Voeg extra AI-helpt rol toe voor dezelfde stap (dupliceert de stap)
+  const handleVoegExtraRolToe = (stapId: string, rolId: string) => {
+    const huidigeStap = stappen.find(s => s.id === stapId)
+    if (!huidigeStap) return
+
+    const nieuweStap: Stap = {
+      id: `${stapId}-${Date.now()}`,
+      titel: huidigeStap.titel,
+      aanpak: 'aihelpt',
+      rol: rolId
+    }
+
+    // Voeg toe direct na de huidige stap
+    const index = stappen.findIndex(s => s.id === stapId)
+    setStappen(prev => [
+      ...prev.slice(0, index + 1),
+      nieuweStap,
+      ...prev.slice(index + 1)
+    ])
+    setOpenDropdown(null)
+  }
+
   const handleSelectAanpak = (stapId: string, aanpak: Aanpak, rol?: string) => {
     setStappen(prev => prev.map(s =>
       s.id === stapId ? { ...s, aanpak, rol } : s
@@ -225,7 +261,7 @@ Houd het heel kort en concreet.`,
   }
 
   const handleBackToDashboard = () => {
-    localStorage.removeItem(STORAGE_KEY) // Reset for next time
+    // Data blijft bewaard zodat S2 het kan gebruiken
     router.push('/dashboard')
   }
 
@@ -236,6 +272,7 @@ Houd het heel kort en concreet.`,
     setStappen([])
     setTotaalLeren(null)
     setTotaalKwaliteit(null)
+    setTotaalSnelheid(null)
     setChatMessages([])
     setStrategieSamenvatting('')
     setWilVerbeteren(false)
@@ -297,7 +334,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
 
   // Helpers
   const alleStappenIngevuld = stappen.every(s => s.aanpak !== null)
-  const totaalIngevuld = totaalLeren !== null && totaalKwaliteit !== null
+  const totaalIngevuld = totaalLeren !== null && totaalKwaliteit !== null && totaalSnelheid !== null
 
   const getRolInfo = (aanpak: Aanpak, rolId?: string) => {
     if (aanpak === 'aihelpt' && rolId) {
@@ -426,7 +463,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
             {/* Uitleg */}
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700">
-                Splits de opdracht op in losse stappen. Bijvoorbeeld: &quot;Onderwerp kiezen&quot;, &quot;Informatie zoeken&quot;, &quot;Tekst schrijven&quot;. Voeg minimaal 2 stappen toe.
+                Bedenk zelf welke stappen je moet zetten om deze opdracht te maken. Wat doe je eerst? Wat daarna? Voeg minimaal 2 stappen toe.
               </p>
             </div>
 
@@ -475,7 +512,17 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
 
             {/* Hulp knop */}
             <button
-              onClick={() => setChatOpen(true)}
+              onClick={() => {
+                // Update chat met huidige stappen
+                const stappenInfo = stappen.length > 0
+                  ? `\n\nJe hebt al deze stappen:\n${stappen.map((s, i) => `${i + 1}. ${s.titel}`).join('\n')}\n\nWil je meer stappen toevoegen of heb je andere vragen?`
+                  : ''
+                setChatMessages([{
+                  role: 'assistant',
+                  content: `Je werkt aan "${gekozenOpdracht?.titel}".${stappenInfo || ' Welke stappen denk je dat je moet zetten? Typ je ideeën, of vraag mij om suggesties!'}`
+                }])
+                setChatOpen(true)
+              }}
               className="w-full bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-center gap-3 transition-colors mb-6"
             >
               <MessageCircle className="h-5 w-5 text-primary" />
@@ -696,6 +743,42 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                       )}
                     </div>
                   </div>
+
+                  {/* + Nog een AI-helpt rol knop */}
+                  {stap.aanpak === 'aihelpt' && stap.rol && (
+                    (() => {
+                      const gekozenRollen = getGekozenAiHelptRollen(stap.titel)
+                      const beschikbareRollen = aiHelptRollen.filter(r => !gekozenRollen.includes(r.id))
+
+                      if (beschikbareRollen.length === 0) return null
+
+                      return (
+                        <div className="ml-9 mt-2 relative">
+                          <button
+                            onClick={() => setOpenDropdown(openDropdown === `${stap.id}-extra` ? null : `${stap.id}-extra`)}
+                            className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Nog een AI-helpt rol
+                          </button>
+                          {openDropdown === `${stap.id}-extra` && (
+                            <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg py-1 z-20 min-w-[160px]">
+                              {beschikbareRollen.map(rol => (
+                                <button
+                                  key={rol.id}
+                                  onClick={() => handleVoegExtraRolToe(stap.id, rol.id)}
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                >
+                                  <span>{rol.emoji}</span>
+                                  <span>{rol.titel}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()
+                  )}
                 </div>
               ))}
             </div>
@@ -747,7 +830,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
             {/* Uitleg */}
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700">
-                Denk na over je gekozen aanpak. Wat betekent dit voor hoeveel je leert en voor de kwaliteit van het resultaat?
+                Denk na over je gekozen aanpak. Wat betekent dit voor hoeveel je leert, de kwaliteit van het resultaat en hoe snel je klaar bent?
               </p>
             </div>
 
@@ -807,7 +890,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
               </div>
 
               {/* Vraag 2: Kwaliteit */}
-              <div>
+              <div className="mb-6">
                 <p className="text-sm text-gray-700 mb-3">
                   Wat doet deze aanpak met de <strong>kwaliteit</strong> van het eindresultaat?
                 </p>
@@ -844,6 +927,45 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                   </button>
                 </div>
               </div>
+
+              {/* Vraag 3: Snelheid */}
+              <div>
+                <p className="text-sm text-gray-700 mb-3">
+                  Wat doet deze aanpak met de <strong>snelheid</strong> waarmee je klaar bent?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTotaalSnelheid(-1)}
+                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
+                      totaalSnelheid === -1
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    Langzamer
+                  </button>
+                  <button
+                    onClick={() => setTotaalSnelheid(0)}
+                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
+                      totaalSnelheid === 0
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    Hetzelfde
+                  </button>
+                  <button
+                    onClick={() => setTotaalSnelheid(1)}
+                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
+                      totaalSnelheid === 1
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    Sneller
+                  </button>
+                </div>
+              </div>
             </div>
 
             <Button
@@ -858,7 +980,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               ) : (
-                'Beantwoord beide vragen'
+                'Beantwoord alle vragen'
               )}
             </Button>
           </div>
@@ -905,7 +1027,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
             </div>
 
             {/* 1. Resultaat - compact bovenaan */}
-            <div className="flex gap-3 mb-4">
+            <div className="flex gap-2 mb-4 flex-wrap">
               <div className="bg-white rounded-lg border shadow-sm px-3 py-2 flex items-center gap-2">
                 <span>📚</span>
                 <span className="text-sm text-gray-500">Leren:</span>
@@ -918,6 +1040,13 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                 <span className="text-sm text-gray-500">Kwaliteit:</span>
                 <span className="font-semibold text-gray-900 text-sm">
                   {totaalKwaliteit === -1 ? 'Lager' : totaalKwaliteit === 0 ? 'Hetzelfde' : 'Hoger'}
+                </span>
+              </div>
+              <div className="bg-white rounded-lg border shadow-sm px-3 py-2 flex items-center gap-2">
+                <span>⚡</span>
+                <span className="text-sm text-gray-500">Snelheid:</span>
+                <span className="font-semibold text-gray-900 text-sm">
+                  {totaalSnelheid === -1 ? 'Langzamer' : totaalSnelheid === 0 ? 'Hetzelfde' : 'Sneller'}
                 </span>
               </div>
             </div>
@@ -1037,6 +1166,17 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                       >
                         <span>⭐</span>
                         <span className="font-medium text-gray-900">Betere kwaliteit</span>
+                      </button>
+                      <button
+                        onClick={() => setVerbeterOptie('snelheid')}
+                        className={`w-full p-2 rounded-lg border text-left flex items-center gap-2 transition-all text-sm ${
+                          verbeterOptie === 'snelheid'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <span>⚡</span>
+                        <span className="font-medium text-gray-900">Sneller klaar</span>
                       </button>
                     </div>
                     <div className="space-y-2">

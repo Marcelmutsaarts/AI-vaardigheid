@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { useState } from 'react'
 import { ChevronDown, Menu, X } from 'lucide-react'
@@ -11,20 +12,25 @@ export function Header() {
   const [showNiveauDropdown, setShowNiveauDropdown] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const hasNiveau = niveau.schoolType && niveau.leerjaar
+  // MBO/HBO hebben geen leerjaar, dus alleen schoolType checken voor die gevallen
+  const hasNiveau = niveau.schoolType && (
+    niveau.schoolType === 'mbo' || niveau.schoolType === 'hbo' || niveau.leerjaar
+  )
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-sm">AI</span>
-            </div>
-            <span className="font-semibold text-lg hidden sm:inline">
-              AI voor Docenten
-            </span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="AI voor Docenten"
+              width={180}
+              height={40}
+              className="h-10 w-auto"
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -56,6 +62,7 @@ export function Header() {
                     <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">
                       Wijzig niveau
                     </div>
+                    {/* VO niveaus met leerjaar */}
                     {(['vmbo', 'havo', 'vwo'] as const).map((type) => (
                       <div key={type} className="px-3 py-1">
                         <div className="text-sm font-medium text-gray-700 mb-1">
@@ -86,6 +93,25 @@ export function Header() {
                         </div>
                       </div>
                     ))}
+                    {/* MBO/HBO zonder leerjaar */}
+                    <div className="border-t border-gray-100 mt-2 pt-2">
+                      {(['mbo', 'hbo'] as const).map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => {
+                            setNiveau(type, null)
+                            setShowNiveauDropdown(false)
+                          }}
+                          className={`w-full px-3 py-2 text-left text-sm font-medium rounded ${
+                            niveau.schoolType === type
+                              ? 'bg-primary text-white'
+                              : 'text-gray-700 hover:bg-primary-light'
+                          }`}
+                        >
+                          {type.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

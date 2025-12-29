@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
+import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
 
 type SchoolbeleidAntwoord = 'ja-ken' | 'ja-niet-goed' | 'nee-weet-niet' | null
 
@@ -60,7 +61,9 @@ export default function S2Page() {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    if (!niveau.schoolType || !niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
@@ -115,7 +118,9 @@ export default function S2Page() {
     }
   }, [schoolbeleid, toonDeel2, reflectie, feedback, isLoaded])
 
-  if (!niveau.schoolType || !niveau.leerjaar) {
+  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
@@ -193,7 +198,10 @@ export default function S2Page() {
           {/* Deel 1: Schoolbeleid */}
           {!toonDeel2 && (
             <div className="bg-white rounded-xl border shadow-sm p-5 mb-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Schoolbeleid</h2>
+              <h2 className="font-semibold text-gray-900 mb-2">Schoolbeleid</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                De meeste scholen hebben regels over AI-gebruik. Bijvoorbeeld: wanneer mag je AI gebruiken voor huiswerk? Moet je het melden? Ken jij de regels van jouw school?
+              </p>
 
               <div className="space-y-2 mb-4">
                 <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors">
@@ -310,8 +318,8 @@ export default function S2Page() {
               </Button>
 
               {feedback && (
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm text-gray-700">
-                  {feedback}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                  {formatMarkdownWithNewlines(feedback)}
                 </div>
               )}
             </div>

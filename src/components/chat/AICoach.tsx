@@ -42,7 +42,12 @@ export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProp
 
   // Welcome message based on niveau
   useEffect(() => {
-    if (isOpen && messages.length === 0 && niveau.schoolType && niveau.leerjaar) {
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const hasValidNiveau = niveau.schoolType && (
+      niveau.schoolType === 'mbo' || niveau.schoolType === 'hbo' || niveau.leerjaar
+    )
+
+    if (isOpen && messages.length === 0 && hasValidNiveau) {
       const welcomeMessages: Record<string, string> = {
         'vmbo-1-2': 'Hey! Ik ben de KIES-coach. Ik help je om beter met AI om te gaan. Waar kan ik je mee helpen?',
         'vmbo-3-4': 'Hoi! Ik ben de KIES-coach. Heb je vragen over AI? Vraag maar!',
@@ -50,13 +55,22 @@ export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProp
         'havo-4-5': 'Welkom! Ik ben de KIES-coach en help je AI-vaardigheden te ontwikkelen. Wat wil je weten?',
         'vwo-1-3': 'Hallo! Als KIES-coach help ik je kritisch en effectief met AI om te gaan. Waar wil je over praten?',
         'vwo-4-6': 'Welkom! Ik ben de KIES-coach. Ik begeleid je bij het ontwikkelen van AI-vaardigheden. Wat kan ik voor je betekenen?',
+        'mbo': 'Hoi! Ik ben de KIES-coach. Ik help je om AI slim in te zetten voor je opleiding en stage. Wat wil je weten?',
+        'hbo': 'Welkom! Ik ben de KIES-coach en begeleid je bij professioneel AI-gebruik. Waarmee kan ik je helpen?',
       }
 
-      const category = niveau.schoolType === 'vmbo'
-        ? (niveau.leerjaar <= 2 ? 'vmbo-1-2' : 'vmbo-3-4')
-        : niveau.schoolType === 'havo'
-        ? (niveau.leerjaar <= 3 ? 'havo-1-3' : 'havo-4-5')
-        : (niveau.leerjaar <= 3 ? 'vwo-1-3' : 'vwo-4-6')
+      let category: string
+      if (niveau.schoolType === 'mbo') {
+        category = 'mbo'
+      } else if (niveau.schoolType === 'hbo') {
+        category = 'hbo'
+      } else if (niveau.schoolType === 'vmbo') {
+        category = (niveau.leerjaar || 1) <= 2 ? 'vmbo-1-2' : 'vmbo-3-4'
+      } else if (niveau.schoolType === 'havo') {
+        category = (niveau.leerjaar || 1) <= 3 ? 'havo-1-3' : 'havo-4-5'
+      } else {
+        category = (niveau.leerjaar || 1) <= 3 ? 'vwo-1-3' : 'vwo-4-6'
+      }
 
       setMessages([{
         role: 'assistant',
@@ -67,7 +81,9 @@ export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProp
   }, [isOpen, messages.length, niveau])
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading || !niveau.schoolType || !niveau.leerjaar) return
+    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+    const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
+    if (!input.trim() || isLoading || !niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) return
 
     const userMessage: Message = {
       role: 'user',
