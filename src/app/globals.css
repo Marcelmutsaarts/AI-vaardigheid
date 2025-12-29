@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: #000000;
+  --background: #ffffff;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+/* Custom scrollbar voor chat */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: #a15df5;
+  border-radius: 3px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #7947ba;
+}
+
+/* Decoratief stippenpatroon */
+.dot-pattern {
+  background-image: radial-gradient(#a15df5 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Focus styles voor accessibility */
+.focus-visible:focus-visible {
+  outline: 2px solid #a15df5;
+  outline-offset: 2px;
+}
