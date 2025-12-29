@@ -41,7 +41,11 @@ export default function I1Page() {
     } else {
       setExpandedOnderdeel(id)
       // Markeer als bekeken
-      setBekendeOnderdelen(prev => new Set([...prev, id]))
+      setBekendeOnderdelen(prev => {
+        const newSet = new Set(prev)
+        newSet.add(id)
+        return newSet
+      })
     }
   }
 

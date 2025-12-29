@@ -209,7 +209,7 @@ export default function DocentDashboard() {
                 <li>• <strong>Uitlegger</strong> = AI-Tutor: maakt concepten begrijpelijk</li>
                 <li>• <strong>Brainstormer</strong> = AI-Teammate: partner bij het bedenken van ideeën</li>
                 <li>• <strong>Feedbacker</strong> = AI-Mentor + AI-Coach: geeft feedback en helpt reflecteren</li>
-                <li>• <strong>Oefenmaatje</strong> = AI-Simulator + AI-Student: oefenen met scenario's, of uitleggen aan AI om eigen begrip te toetsen</li>
+                <li>• <strong>Oefenmaatje</strong> = AI-Simulator + AI-Student: oefenen met scenario&apos;s, of uitleggen aan AI om eigen begrip te toetsen</li>
               </ul>
             </div>
             <div className="bg-gray-50 rounded-lg p-3">

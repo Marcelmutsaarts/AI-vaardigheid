@@ -1,7 +1,11 @@
 // K-Module: Kiezen - Content en Data
 // Gebaseerd op Mollick & Mollick (2023) "Assigning AI: Seven Approaches for Students"
 
+// Type voor K2 stappen (3-weg: zelf, AI helpt met sub-rollen, AI doet met sub-rollen)
 export type Aanpak = 'zelf' | 'aihelpt' | 'aidoet'
+
+// Type voor de 5 aanpak-categorieën in herkenoefeningen
+export type AanpakCategorie = 'zelf' | 'nadenken' | 'opgang' | 'oefenen' | 'uitbesteden'
 
 export interface AanpakInfo {
   id: Aanpak
@@ -361,7 +365,7 @@ export const aiKanNiet = [
 export interface HerkenScenario {
   id: string
   situatie: string
-  correcteAanpak: Aanpak
+  correcteAanpak: AanpakCategorie
   uitleg: string
 }
 

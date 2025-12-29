@@ -7,7 +7,7 @@ import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Zap, Image, Video, MessageSquare, CheckCircle2, Award, Home } from 'lucide-react'
+import { ArrowLeft, Zap, Image as ImageIcon, Video, MessageSquare, CheckCircle2, Award, Home } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 
 type Antwoord = '10' | '100' | '1000' | null
@@ -205,7 +205,7 @@ export default function S3Page() {
                           <span className="text-xs text-gray-600 w-24">Tekstvraag</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Image className="h-5 w-5 text-amber-500" />
+                          <ImageIcon className="h-5 w-5 text-amber-500" />
                           <div className="flex-1">
                             <div className="h-2 bg-amber-200 rounded-full" style={{ width: '50%' }} />
                           </div>

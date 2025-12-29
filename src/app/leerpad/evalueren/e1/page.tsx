@@ -30,7 +30,11 @@ export default function E1Page() {
   const alleBekekenStappen = stapBekeken.size >= 3
 
   const handleStapClick = (stap: number) => {
-    setStapBekeken(prev => new Set([...prev, stap]))
+    setStapBekeken(prev => {
+      const newSet = new Set(prev)
+      newSet.add(stap)
+      return newSet
+    })
   }
 
   const handleComplete = () => {

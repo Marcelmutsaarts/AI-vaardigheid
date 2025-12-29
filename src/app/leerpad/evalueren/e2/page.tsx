@@ -365,7 +365,7 @@ Geef je antwoord in EXACT dit JSON format:
                 <div className="bg-white rounded-xl border shadow-sm p-4">
                   <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4">
                     <p className="text-sm text-amber-800">
-                      <strong>Hint:</strong> Let op de woorden "hij" of "zij" in het verhaal.
+                      <strong>Hint:</strong> Let op de woorden &quot;hij&quot; of &quot;zij&quot; in het verhaal.
                       Waarom zou de AI kiezen voor een jongen of een meisje?
                     </p>
                   </div>
@@ -440,7 +440,7 @@ Geef je antwoord in EXACT dit JSON format:
 
                   <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
                     <p className="text-sm text-purple-800">
-                      <strong>Onthoud:</strong> AI neemt aan dat bepaalde hobby's bij een jongen of meisje horen.
+                      <strong>Onthoud:</strong> AI neemt aan dat bepaalde hobby&apos;s bij een jongen of meisje horen.
                       Dat is een vooroordeel - iedereen kan van alles houden!
                     </p>
                   </div>

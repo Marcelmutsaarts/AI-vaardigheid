@@ -110,6 +110,7 @@ export default function K2Page() {
     if (phase === 'resultaat' && !strategieSamenvatting && !samenvattingLoading && stappen.length > 0) {
       generateStrategieSamenvatting()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
   const generateStrategieSamenvatting = async () => {
