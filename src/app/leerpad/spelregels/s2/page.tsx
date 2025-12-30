@@ -268,9 +268,9 @@ export default function S2Page() {
                 <ArrowLeft className="h-3 w-3" />
                 Terug naar schoolbeleid
               </button>
-              <h2 className="font-semibold text-gray-900 mb-2">Toepassen op jouw plan</h2>
+              <h2 className="font-semibold text-gray-900 mb-2">Meld ik AI-gebruik of niet?</h2>
               <p className="text-sm text-gray-600 mb-4">
-                Hieronder zie je je eigen AI-strategie uit het begin van de app. Zou je dit gebruik melden?
+                De kernvraag is: <strong>is het werk dat je oplevert echt van jou?</strong> Denk daar goed over na bij het bekijken van je eigen AI-strategie hieronder.
               </p>
 
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
