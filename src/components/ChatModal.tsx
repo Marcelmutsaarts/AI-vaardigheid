@@ -1,15 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { X, Send, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-}
+import { useStreamingChat } from '@/hooks/useStreamingChat'
 
 interface ChatModalProps {
   isOpen: boolean
@@ -41,16 +37,24 @@ const rolePrompts: Record<string, string> = {
 
 export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
   const { niveau } = useNiveau()
-  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const { messages, isStreaming, streamingContent, sendMessage, clearMessages } = useStreamingChat({
+    context: {
+      niveau: niveau.schoolType as 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo',
+      leerjaar: niveau.leerjaar,
+      currentModule: 'kiezen',
+      moduleContext: rolePrompts[role.id] || '',
+      aiMode: mode,
+    },
+  })
 
   // Reset chat when role changes, pre-fill with example
   useEffect(() => {
     if (isOpen) {
-      setMessages([])
+      clearMessages()
       // Pre-fill input with example (remove quotes) and replace placeholders with actual niveau
       // Use MBO/HBO-specific example if available
       let example: string
@@ -72,62 +76,24 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
         inputRef.current?.select()
       }, 100)
     }
-  }, [isOpen, role.id, role.voorbeeld, role.voorbeeldMBO, role.voorbeeldHBO, niveau.schoolType, niveau.leerjaar])
+  }, [isOpen, role.id, role.voorbeeld, role.voorbeeldMBO, role.voorbeeldHBO, niveau.schoolType, niveau.leerjaar, clearMessages])
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change or during streaming
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, streamingContent])
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return
-
-    const userMessage = input.trim()
+  const handleSend = async () => {
+    if (!input.trim() || isStreaming) return
+    const message = input.trim()
     setInput('')
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }])
-    setIsLoading(true)
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMessage,
-          context: {
-            niveau: niveau.schoolType,
-            leerjaar: niveau.leerjaar,
-            currentModule: 'kiezen',
-            moduleContext: rolePrompts[role.id] || '',
-            aiMode: mode, // 'helpt' of 'doet'
-            conversationHistory: messages,
-          },
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.error) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'Sorry, er ging iets mis. Probeer het opnieuw.'
-        }])
-      } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
-      }
-    } catch {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, er ging iets mis. Probeer het opnieuw.'
-      }])
-    } finally {
-      setIsLoading(false)
-    }
+    await sendMessage(message)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      handleSend()
     }
   }
 
@@ -135,7 +101,7 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md h-[500px] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl h-[75vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
           <div className="flex items-center gap-3">
@@ -157,7 +123,7 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {messages.length === 0 && (
+          {messages.length === 0 && !isStreaming && (
             <p className="text-center text-gray-400 text-sm mt-8">
               Pas de voorbeeldprompt aan of verstuur direct
             </p>
@@ -180,7 +146,16 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
               </div>
             </div>
           ))}
-          {isLoading && (
+          {isStreaming && streamingContent && (
+            <div className="flex justify-start">
+              <div className="max-w-[85%] rounded-2xl px-4 py-2 bg-gray-100 text-gray-900">
+                <p className="text-sm whitespace-pre-wrap">
+                  {formatMarkdownWithNewlines(streamingContent)}
+                </p>
+              </div>
+            </div>
+          )}
+          {isStreaming && !streamingContent && (
             <div className="flex justify-start">
               <div className="bg-gray-100 rounded-2xl px-4 py-2">
                 <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -199,13 +174,13 @@ export function ChatModal({ isOpen, onClose, role, mode }: ChatModalProps) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Typ je bericht..."
-              rows={5}
+              rows={4}
               className="flex-1 px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-              disabled={isLoading}
+              disabled={isStreaming}
             />
             <Button
-              onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
+              onClick={handleSend}
+              disabled={!input.trim() || isStreaming}
               size="icon"
               className="rounded-full h-10 w-10 flex-shrink-0"
             >

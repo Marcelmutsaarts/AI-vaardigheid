@@ -7,12 +7,7 @@ import { Card } from '@/components/ui/card'
 import { MessageSquare, X, Send, Loader2, Bot, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
-}
+import { useStreamingChat } from '@/hooks/useStreamingChat'
 
 interface AICoachProps {
   currentModule?: 'kiezen' | 'instrueren' | 'evalueren' | 'spelregels'
@@ -22,16 +17,24 @@ interface AICoachProps {
 export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProps) {
   const { niveau } = useNiveau()
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [hasAddedWelcome, setHasAddedWelcome] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Scroll to bottom when new messages arrive
+  const { messages, isStreaming, streamingContent, sendMessage, setMessages, clearMessages } = useStreamingChat({
+    context: {
+      niveau: niveau.schoolType as 'vmbo' | 'havo' | 'vwo' | 'mbo' | 'hbo',
+      leerjaar: niveau.leerjaar,
+      currentModule,
+      moduleContext,
+    },
+  })
+
+  // Scroll to bottom when new messages arrive or during streaming
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, streamingContent])
 
   // Focus input when chat opens
   useEffect(() => {
@@ -42,12 +45,11 @@ export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProp
 
   // Welcome message based on niveau
   useEffect(() => {
-    // MBO/HBO hebben geen leerjaar, VO niveaus wel
     const hasValidNiveau = niveau.schoolType && (
       niveau.schoolType === 'mbo' || niveau.schoolType === 'hbo' || niveau.leerjaar
     )
 
-    if (isOpen && messages.length === 0 && hasValidNiveau) {
+    if (isOpen && messages.length === 0 && hasValidNiveau && !hasAddedWelcome) {
       const welcomeMessages: Record<string, string> = {
         'vmbo-1-2': 'Hey! Ik ben de KIES-coach. Ik help je om beter met AI om te gaan. Waar kan ik je mee helpen?',
         'vmbo-3-4': 'Hoi! Ik ben de KIES-coach. Heb je vragen over AI? Vraag maar!',
@@ -75,74 +77,24 @@ export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProp
       setMessages([{
         role: 'assistant',
         content: welcomeMessages[category],
-        timestamp: new Date(),
       }])
+      setHasAddedWelcome(true)
     }
-  }, [isOpen, messages.length, niveau])
+  }, [isOpen, messages.length, niveau, hasAddedWelcome, setMessages])
 
-  const sendMessage = async () => {
-    // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  const handleSend = async () => {
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
-    if (!input.trim() || isLoading || !niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) return
+    if (!input.trim() || isStreaming || !niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) return
 
-    const userMessage: Message = {
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    }
-
-    setMessages(prev => [...prev, userMessage])
+    const message = input.trim()
     setInput('')
-    setIsLoading(true)
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          context: {
-            niveau: niveau.schoolType,
-            leerjaar: niveau.leerjaar,
-            currentModule,
-            moduleContext,
-            conversationHistory: messages.map(m => ({
-              role: m.role,
-              content: m.content,
-            })),
-          },
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-
-      const data = await response.json()
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data.reply,
-        timestamp: new Date(),
-      }])
-    } catch (error) {
-      console.error('Chat error:', error)
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, er ging iets mis. Probeer het nog eens.',
-        timestamp: new Date(),
-      }])
-    } finally {
-      setIsLoading(false)
-    }
+    await sendMessage(message)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      handleSend()
     }
   }
 
@@ -162,8 +114,8 @@ export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProp
 
       {/* Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-48px)] animate-in slide-in-from-bottom-4 duration-300">
-          <Card className="flex flex-col h-[500px] max-h-[calc(100vh-100px)] shadow-2xl">
+        <div className="fixed bottom-6 right-6 z-50 w-[480px] max-w-[calc(100vw-48px)] animate-in slide-in-from-bottom-4 duration-300">
+          <Card className="flex flex-col h-[75vh] max-h-[calc(100vh-100px)] shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-primary text-white rounded-t-lg">
               <div className="flex items-center space-x-3">
@@ -223,7 +175,20 @@ export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProp
                 </div>
               ))}
 
-              {isLoading && (
+              {isStreaming && streamingContent && (
+                <div className="flex items-start space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
+                    <Bot className="h-4 w-4" />
+                  </div>
+                  <div className="bg-white border border-border rounded-lg px-4 py-2 max-w-[80%]">
+                    <p className="text-sm whitespace-pre-wrap">
+                      {formatMarkdownWithNewlines(streamingContent)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {isStreaming && !streamingContent && (
                 <div className="flex items-start space-x-2">
                   <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
                     <Bot className="h-4 w-4" />
@@ -248,15 +213,15 @@ export function AICoach({ currentModule = 'kiezen', moduleContext }: AICoachProp
                   placeholder="Stel een vraag..."
                   className="flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-h-[40px] max-h-[120px]"
                   rows={1}
-                  disabled={isLoading}
+                  disabled={isStreaming}
                 />
                 <Button
-                  onClick={sendMessage}
-                  disabled={!input.trim() || isLoading}
+                  onClick={handleSend}
+                  disabled={!input.trim() || isStreaming}
                   size="icon"
                   className="h-10 w-10 flex-shrink-0"
                 >
-                  {isLoading ? (
+                  {isStreaming ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Send className="h-4 w-4" />

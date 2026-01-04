@@ -102,10 +102,11 @@ export default function I2Page() {
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[] | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
 
-  // Uitvoer state - nu met chat functionaliteit
+  // Uitvoer state - nu met chat functionaliteit en streaming
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [uitvoerLoading, setUitvoerLoading] = useState(false)
+  const [streamingContent, setStreamingContent] = useState('')
 
   // Herschrijf state
   const [herschrevenPrompt, setHerschrevenPrompt] = useState<PromptInput | null>(null)
@@ -260,10 +261,11 @@ Regels voor feedback:
     await executePrompt()
   }
 
-  // Daadwerkelijke uitvoering van de prompt
+  // Daadwerkelijke uitvoering van de prompt met streaming
   const executePrompt = async (tekst?: string) => {
     setUitvoerLoading(true)
     setChatMessages([])
+    setStreamingContent('')
     setShowTekstModal(false)
 
     try {
@@ -275,7 +277,16 @@ Regels voor feedback:
         volledigePrompt += '\n\n---\nTEKST:\n' + tekstToUse.trim()
       }
 
-      const response = await fetch('/api/chat', {
+      // Voeg user message toe
+      setChatMessages([{ role: 'user', content: volledigePrompt }])
+      setPhase('resultaat')
+
+      // Scroll naar resultaat
+      setTimeout(() => {
+        resultaatRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+
+      const response = await fetch('/api/chat-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -290,29 +301,58 @@ Regels voor feedback:
         })
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        // Sla de eerste prompt en reactie op als chat messages
-        setChatMessages([
-          { role: 'user', content: volledigePrompt },
-          { role: 'assistant', content: data.reply }
-        ])
-        setPhase('resultaat')
-        // Scroll naar resultaat
-        setTimeout(() => {
-          resultaatRef.current?.scrollIntoView({ behavior: 'smooth' })
-          chatInputRef.current?.focus()
-        }, 100)
+      if (!response.ok) {
+        throw new Error('API error')
       }
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader')
+
+      const decoder = new TextDecoder()
+      let fullContent = ''
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.content) {
+                fullContent += data.content
+                setStreamingContent(fullContent)
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      // Voeg complete assistant message toe
+      if (fullContent) {
+        setChatMessages(prev => [...prev, { role: 'assistant', content: fullContent }])
+      }
+
+      setTimeout(() => {
+        chatInputRef.current?.focus()
+      }, 100)
     } catch (error) {
       console.error('Uitvoer error:', error)
-      setChatMessages([{ role: 'assistant', content: 'Er ging iets mis. Probeer het opnieuw.' }])
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Er ging iets mis. Probeer het opnieuw.' }])
     } finally {
       setUitvoerLoading(false)
+      setStreamingContent('')
     }
   }
 
-  // Vervolgbericht sturen in de chat
+  // Vervolgbericht sturen in de chat met streaming
   const handleChatSend = async () => {
     if (!chatInput.trim() || uitvoerLoading) return
 
@@ -320,9 +360,10 @@ Regels voor feedback:
     setChatInput('')
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setUitvoerLoading(true)
+    setStreamingContent('')
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/chat-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -338,19 +379,53 @@ Regels voor feedback:
         })
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
-        // Scroll naar nieuwste bericht
-        setTimeout(() => {
-          chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-        }, 100)
+      if (!response.ok) {
+        throw new Error('API error')
       }
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader')
+
+      const decoder = new TextDecoder()
+      let fullContent = ''
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.content) {
+                fullContent += data.content
+                setStreamingContent(fullContent)
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      if (fullContent) {
+        setChatMessages(prev => [...prev, { role: 'assistant', content: fullContent }])
+      }
+
+      setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
     } catch (error) {
       console.error('Chat error:', error)
       setChatMessages(prev => [...prev, { role: 'assistant', content: 'Er ging iets mis. Probeer het opnieuw.' }])
     } finally {
       setUitvoerLoading(false)
+      setStreamingContent('')
     }
   }
 
@@ -776,7 +851,7 @@ Belangrijk:
               </div>
 
               {/* Chat berichten */}
-              <div className="max-h-[400px] overflow-y-auto p-4 space-y-3">
+              <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
                 {chatMessages.map((msg, i) => (
                   <div
                     key={i}
@@ -803,7 +878,21 @@ Belangrijk:
                     </div>
                   </div>
                 ))}
-                {uitvoerLoading && (
+                {uitvoerLoading && streamingContent && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-2xl px-4 py-2 bg-gray-100 text-gray-900">
+                      <p className="text-sm whitespace-pre-wrap">
+                        {streamingContent.split('\n').map((line, j) => (
+                          <span key={j}>
+                            {formatMarkdown(line)}
+                            {j < streamingContent.split('\n').length - 1 && '\n'}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {uitvoerLoading && !streamingContent && (
                   <div className="flex justify-start">
                     <div className="bg-gray-100 rounded-2xl px-4 py-2">
                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />

@@ -60,6 +60,7 @@ export default function K2Page() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+  const [chatStreamingContent, setChatStreamingContent] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   // Samenvatting state
@@ -108,7 +109,7 @@ export default function K2Page() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatMessages])
+  }, [chatMessages, chatStreamingContent])
 
   // Genereer samenvatting wanneer we naar resultaat fase gaan
   useEffect(() => {
@@ -280,7 +281,7 @@ Houd het heel kort en concreet.`,
     setIsAanpassen(false)
   }
 
-  // Chat handler
+  // Chat handler met streaming
   const handleSendChat = async () => {
     if (!chatInput.trim() || chatLoading) return
 
@@ -288,6 +289,7 @@ Houd het heel kort en concreet.`,
     setChatInput('')
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setChatLoading(true)
+    setChatStreamingContent('')
 
     // Bouw context met bestaande stappen
     const bestaandeStappen = stappen.length > 0
@@ -295,7 +297,7 @@ Houd het heel kort en concreet.`,
       : ''
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/chat-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -313,14 +315,42 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         })
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
-      } else {
-        setChatMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'Sorry, er ging iets mis. Probeer het opnieuw.'
-        }])
+      if (!response.ok) {
+        throw new Error('API error')
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader')
+
+      const decoder = new TextDecoder()
+      let fullContent = ''
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.content) {
+                fullContent += data.content
+                setChatStreamingContent(fullContent)
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      if (fullContent) {
+        setChatMessages(prev => [...prev, { role: 'assistant', content: fullContent }])
       }
     } catch {
       setChatMessages(prev => [...prev, {
@@ -329,6 +359,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
       }])
     } finally {
       setChatLoading(false)
+      setChatStreamingContent('')
     }
   }
 
@@ -551,7 +582,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         {/* Chat Panel */}
         {chatOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-            <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl max-h-[80vh] flex flex-col">
+            <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl rounded-t-2xl h-[75vh] flex flex-col">
               <div className="flex items-center justify-between p-4 border-b">
                 <h3 className="font-semibold text-gray-900">AI Hulp</h3>
                 <button onClick={() => setChatOpen(false)} className="text-gray-400 hover:text-gray-600">
@@ -566,7 +597,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
                         msg.role === 'user'
                           ? 'bg-primary text-white'
                           : 'bg-gray-100 text-gray-700'
@@ -576,7 +607,14 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                     </div>
                   </div>
                 ))}
-                {chatLoading && (
+                {chatLoading && chatStreamingContent && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-2xl px-4 py-2 text-sm bg-gray-100 text-gray-700 whitespace-pre-wrap">
+                      {chatStreamingContent}
+                    </div>
+                  </div>
+                )}
+                {chatLoading && !chatStreamingContent && (
                   <div className="flex justify-start">
                     <div className="bg-gray-100 rounded-2xl px-4 py-2">
                       <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -595,6 +633,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                     onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
                     placeholder="Vraag om suggesties..."
                     className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    disabled={chatLoading}
                   />
                   <Button onClick={handleSendChat} size="sm" disabled={chatLoading || !chatInput.trim()}>
                     <Send className="h-4 w-4" />
