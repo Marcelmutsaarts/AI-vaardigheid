@@ -11,13 +11,10 @@ import { ArrowRight, ArrowLeft } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { aiHelptRollen, aiDoetRollen, AIRol } from '@/lib/kiezen-content'
 import { ChatModal } from '@/components/ChatModal'
-import { ProgressStepper, ContextBanner, NextStepCard } from '@/components/navigation'
-import { useModuleProgress } from '@/hooks/useModuleProgress'
 
 export default function K1Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
   const [selectedRole, setSelectedRole] = useState<AIRol | null>(null)
   const [selectedMode, setSelectedMode] = useState<'helpt' | 'doet'>('helpt')
 
@@ -37,7 +34,6 @@ export default function K1Page() {
 
   const handleComplete = () => {
     updateProgress('kiezen', 'k1', true)
-    markAsCompleted('k1')
     router.push('/leerpad/kiezen/k2')
   }
 
@@ -56,9 +52,6 @@ export default function K1Page() {
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
-          <ProgressStepper currentModuleId="k1" completedModuleIds={completedModules} />
-          <ContextBanner moduleId="k1" />
-
           {/* Terug link */}
           <Link
             href="/leerpad/kiezen"
@@ -158,10 +151,6 @@ export default function K1Page() {
             Volgende stap
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
-
-          <div className="mt-6">
-            <NextStepCard currentModuleId="k1" isCompleted={isCompleted('k1')} />
-          </div>
         </div>
       </main>
 

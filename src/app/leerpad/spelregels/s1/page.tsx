@@ -10,8 +10,6 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
-import { ProgressStepper, ContextBanner, NextStepCard } from '@/components/navigation'
-import { useModuleProgress } from '@/hooks/useModuleProgress'
 
 type CategorieId = 'van-mij' | 'van-anderen' | 'geheim'
 
@@ -48,7 +46,6 @@ const STORAGE_KEY = 'kies-s1-antwoorden'
 export default function S1Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
   const [antwoorden, setAntwoorden] = useState<Record<CategorieId, string>>({
     'van-mij': '',
     'van-anderen': '',
@@ -137,7 +134,6 @@ export default function S1Page() {
 
   const handleComplete = () => {
     updateProgress('spelregels', 's1', true)
-    markAsCompleted('s1')
     router.push('/leerpad/spelregels/s2')
   }
 
@@ -147,9 +143,6 @@ export default function S1Page() {
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
-          <ProgressStepper currentModuleId="s1" completedModuleIds={completedModules} />
-          <ContextBanner moduleId="s1" />
-
           {/* Terug link */}
           <Link
             href="/leerpad/spelregels"
@@ -241,10 +234,6 @@ export default function S1Page() {
               'Vul alle drie in om door te gaan'
             )}
           </Button>
-
-          <div className="mt-6">
-            <NextStepCard currentModuleId="s1" isCompleted={isCompleted('s1')} />
-          </div>
         </div>
       </main>
 

@@ -18,8 +18,6 @@ import {
 import { kiesKleuren } from '@/lib/utils'
 import { aiValkuilen, evalueerPrompts } from '@/lib/evalueren-content'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
-import { ProgressStepper, ContextBanner, NextStepCard } from '@/components/navigation'
-import { useModuleProgress } from '@/hooks/useModuleProgress'
 
 type Fase = 'intro' | 'bias' | 'hallucinatie' | 'sycofantie' | 'klaar'
 
@@ -32,7 +30,6 @@ interface FeitData {
 export default function E2Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
 
   // Algemene state
   const [fase, setFase] = useState<Fase>('intro')
@@ -224,7 +221,6 @@ Geef je antwoord in EXACT dit JSON format:
   // Afronden
   const handleComplete = () => {
     updateProgress('evalueren', 'e2', true)
-    markAsCompleted('e2')
     router.push('/leerpad/spelregels/s1')
   }
 
@@ -242,9 +238,6 @@ Geef je antwoord in EXACT dit JSON format:
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
-          <ProgressStepper currentModuleId="e2" completedModuleIds={completedModules} />
-          <ContextBanner moduleId="e2" />
-
           {/* Terug link */}
           <Link
             href="/leerpad/evalueren/e1"
@@ -757,10 +750,6 @@ Geef je antwoord in EXACT dit JSON format:
                 <CheckCircle2 className="h-5 w-5 mr-2" />
                 Module afronden
               </Button>
-
-              <div className="mt-6">
-                <NextStepCard currentModuleId="e2" isCompleted={isCompleted('e2')} />
-              </div>
             </div>
           )}
         </div>

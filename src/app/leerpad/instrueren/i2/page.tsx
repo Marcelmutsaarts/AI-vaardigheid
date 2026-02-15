@@ -30,8 +30,6 @@ import {
   getOnderdeelLabel
 } from '@/lib/instrueren-content'
 import { formatMarkdown } from '@/lib/format-markdown'
-import { ProgressStepper, ContextBanner, NextStepCard } from '@/components/navigation'
-import { useModuleProgress } from '@/hooks/useModuleProgress'
 
 interface PromptInput {
   rol: string
@@ -79,7 +77,6 @@ const TEKST_LABELS: Record<string, { titel: string; placeholder: string }> = {
 export default function I2Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
 
   // Phase & rol state
   const [phase, setPhase] = useState<Phase>('kiesrol')
@@ -534,7 +531,6 @@ Belangrijk:
   // Afronden
   const handleComplete = () => {
     updateProgress('instrueren', 'i2', true)
-    markAsCompleted('i2')
     router.push('/leerpad/evalueren/e1')
   }
 
@@ -546,9 +542,6 @@ Belangrijk:
 
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
-            <ProgressStepper currentModuleId="i2" completedModuleIds={completedModules} />
-            <ContextBanner moduleId="i2" />
-
             <Link
               href="/leerpad/instrueren/i1"
               className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
@@ -626,9 +619,6 @@ Belangrijk:
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
-          <ProgressStepper currentModuleId="i2" completedModuleIds={completedModules} />
-          <ContextBanner moduleId="i2" />
-
           <button
             onClick={handleAndereRol}
             className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
@@ -971,10 +961,6 @@ Belangrijk:
               </button>
             </div>
           )}
-
-          <div className="mt-6">
-            <NextStepCard currentModuleId="i2" isCompleted={isCompleted('i2')} />
-          </div>
         </div>
       </main>
 

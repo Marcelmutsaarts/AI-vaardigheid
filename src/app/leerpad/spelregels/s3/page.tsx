@@ -9,8 +9,6 @@ import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Zap, Image as ImageIcon, Video, MessageSquare, CheckCircle2, Award, Home } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
-import { ProgressStepper, ContextBanner, NextStepCard } from '@/components/navigation'
-import { useModuleProgress } from '@/hooks/useModuleProgress'
 
 type Antwoord = '10' | '100' | '1000' | null
 
@@ -53,7 +51,6 @@ const niveauTeksten = {
 export default function S3Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
 
   const [gekozenAntwoord, setGekozenAntwoord] = useState<Antwoord>(null)
   const [toonResultaat, setToonResultaat] = useState(false)
@@ -122,7 +119,6 @@ export default function S3Page() {
 
   const handleComplete = () => {
     updateProgress('spelregels', 's3', true)
-    markAsCompleted('s3')
     setToonAfronding(true)
   }
 
@@ -134,9 +130,6 @@ export default function S3Page() {
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
-          <ProgressStepper currentModuleId="s3" completedModuleIds={completedModules} />
-          <ContextBanner moduleId="s3" />
-
           {/* Terug link */}
           <Link
             href="/leerpad/spelregels/s2"
@@ -274,51 +267,45 @@ export default function S3Page() {
 
           {/* Afronding scherm */}
           {toonAfronding && (
-            <>
-              <div className="bg-white rounded-xl border shadow-sm p-6 text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="h-8 w-8 text-green-600" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
-                  Gefeliciteerd!
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  Je hebt alle KIES-onderdelen doorlopen. Je weet nu hoe je slim, kritisch en eerlijk met AI omgaat.
-                </p>
+            <div className="bg-white rounded-xl border shadow-sm p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Gefeliciteerd!
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Je hebt alle KIES-onderdelen doorlopen. Je weet nu hoe je slim, kritisch en eerlijk met AI omgaat.
+              </p>
 
-                <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 mb-4 text-left">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Award className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">Wil je een overzicht?</h3>
-                      <p className="text-sm text-gray-600 mb-3">
-                        Download een handig overzicht van alles wat je hebt geleerd.
-                        Je kunt je naam erop zetten als je wilt - je gegevens worden nergens opgeslagen.
-                      </p>
-                      <Button asChild size="sm">
-                        <Link href="/diploma">
-                          <Award className="h-4 w-4 mr-2" />
-                          Naar overzicht
-                        </Link>
-                      </Button>
-                    </div>
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 mb-4 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Award className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Wil je een overzicht?</h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Download een handig overzicht van alles wat je hebt geleerd.
+                      Je kunt je naam erop zetten als je wilt - je gegevens worden nergens opgeslagen.
+                    </p>
+                    <Button asChild size="sm">
+                      <Link href="/diploma">
+                        <Award className="h-4 w-4 mr-2" />
+                        Naar overzicht
+                      </Link>
+                    </Button>
                   </div>
                 </div>
-
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/dashboard">
-                    <Home className="h-4 w-4 mr-2" />
-                    Terug naar dashboard
-                  </Link>
-                </Button>
               </div>
 
-              <div className="mt-6">
-                <NextStepCard currentModuleId="s3" isCompleted={isCompleted('s3')} />
-              </div>
-            </>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard">
+                  <Home className="h-4 w-4 mr-2" />
+                  Terug naar dashboard
+                </Link>
+              </Button>
+            </div>
           )}
         </div>
       </main>

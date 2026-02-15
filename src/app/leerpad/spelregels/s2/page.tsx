@@ -10,8 +10,6 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
-import { ProgressStepper, ContextBanner, NextStepCard } from '@/components/navigation'
-import { useModuleProgress } from '@/hooks/useModuleProgress'
 
 type SchoolbeleidAntwoord = 'ja-ken' | 'ja-niet-goed' | 'nee-weet-niet' | null
 
@@ -49,7 +47,6 @@ const schoolbeleidReacties: Record<string, string> = {
 export default function S2Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
 
   // Deel 1: Schoolbeleid
   const [schoolbeleid, setSchoolbeleid] = useState<SchoolbeleidAntwoord>(null)
@@ -167,7 +164,6 @@ export default function S2Page() {
 
   const handleComplete = () => {
     updateProgress('spelregels', 's2', true)
-    markAsCompleted('s2')
     router.push('/leerpad/spelregels/s3')
   }
 
@@ -177,9 +173,6 @@ export default function S2Page() {
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
-          <ProgressStepper currentModuleId="s2" completedModuleIds={completedModules} />
-          <ContextBanner moduleId="s2" />
-
           {/* Terug link */}
           <Link
             href="/leerpad/spelregels/s1"
@@ -350,10 +343,6 @@ export default function S2Page() {
               )}
             </Button>
           )}
-
-          <div className="mt-6">
-            <NextStepCard currentModuleId="s2" isCompleted={isCompleted('s2')} />
-          </div>
         </div>
       </main>
 

@@ -16,9 +16,6 @@ import {
   aiDoetRollen,
   Aanpak
 } from '@/lib/kiezen-content'
-import { ProgressStepper, ContextBanner, NextStepCard, K2PhaseStepper } from '@/components/navigation'
-import { useModuleProgress } from '@/hooks/useModuleProgress'
-import { getK2Phases } from '@/lib/learning-path'
 
 interface Stap {
   id: string
@@ -48,7 +45,6 @@ interface K2State {
 export default function K2Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
   const [phase, setPhase] = useState<Phase>('kiezen')
   const [gekozenOpdracht, setGekozenOpdracht] = useState<OpdrachtOptie | null>(null)
   const [stappen, setStappen] = useState<Stap[]>([])
@@ -259,7 +255,6 @@ Houd het heel kort en concreet.`,
 
   const handleFinish = () => {
     updateProgress('kiezen', 'k2', true)
-    markAsCompleted('k2')
     setWilVerbeteren(false)
     setVerbeterOptie(null)
     setIsAanpassen(false)
@@ -403,20 +398,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     aidoet: stappen.filter(s => s.aanpak === 'aidoet').length
   }
 
-  // K2 phase navigation helpers
-  const k2PhaseOrder: Phase[] = ['kiezen', 'onderdelen', 'aanpak', 'resultaat', 'experimenteren']
-  const currentPhaseIndex = k2PhaseOrder.indexOf(phase)
-  const completedPhases = k2PhaseOrder.filter((_, i) => i < currentPhaseIndex)
-  const k2Phases = getK2Phases()
-  const currentK2Phase = k2Phases.find(p => p.id === phase)
-
-  const handlePhaseClick = (phaseId: string) => {
-    // Only allow navigating to completed phases
-    if (completedPhases.includes(phaseId as Phase)) {
-      setPhase(phaseId as Phase)
-    }
-  }
-
+  
   // ============ FASE 1: OPDRACHT KIEZEN ============
   if (phase === 'kiezen') {
     return (
@@ -424,11 +406,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <Header />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
-            <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
-            <div className="border-t border-gray-100 mx-8" />
-            <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
-            <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
-
             <Link
               href="/leerpad/kiezen/k1"
               className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
@@ -491,11 +468,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <Header />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
-            <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
-            <div className="border-t border-gray-100 mx-8" />
-            <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
-            <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
-
             <button
               onClick={() => setPhase('kiezen')}
               className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
@@ -685,11 +657,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <Header />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
-            <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
-            <div className="border-t border-gray-100 mx-8" />
-            <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
-            <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
-
             <button
               onClick={() => setPhase('onderdelen')}
               className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
@@ -884,11 +851,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <Header />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
-            <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
-            <div className="border-t border-gray-100 mx-8" />
-            <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
-            <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
-
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-2">
                 <div
@@ -1069,7 +1031,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
 
   // ============ FASE 5: EXPERIMENTEREN ============
   if (phase === 'experimenteren') {
-    const moduleIsCompleted = isCompleted('k2')
     const getStapLabel = (stap: Stap) => {
       if (stap.aanpak === 'zelf') {
         return { emoji: '👤', titel: 'Zelf', kleur: 'border-gray-200 bg-gray-50' }
@@ -1088,11 +1049,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <Header />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-4xl">
-            <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
-            <div className="border-t border-gray-100 mx-8" />
-            <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
-            <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
-
             {/* Header */}
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-2">
@@ -1311,10 +1267,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                   </div>
                 )}
               </div>
-            </div>
-
-            <div className="mt-6">
-              <NextStepCard currentModuleId="k2" isCompleted={moduleIsCompleted} />
             </div>
           </div>
         </main>

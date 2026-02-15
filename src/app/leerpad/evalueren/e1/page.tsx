@@ -10,13 +10,10 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, User, Bot, CheckCircle2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { getMensAIMensTekst, aiValkuilen } from '@/lib/evalueren-content'
-import { ProgressStepper, ContextBanner, NextStepCard } from '@/components/navigation'
-import { useModuleProgress } from '@/hooks/useModuleProgress'
 
 export default function E1Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
   const [stapBekeken, setStapBekeken] = useState<Set<number>>(new Set())
 
   useEffect(() => {
@@ -46,7 +43,6 @@ export default function E1Page() {
 
   const handleComplete = () => {
     updateProgress('evalueren', 'e1', true)
-    markAsCompleted('e1')
     router.push('/leerpad/evalueren/e2')
   }
 
@@ -56,9 +52,6 @@ export default function E1Page() {
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
-          <ProgressStepper currentModuleId="e1" completedModuleIds={completedModules} />
-          <ContextBanner moduleId="e1" />
-
           {/* Terug link */}
           <Link
             href="/leerpad/evalueren"
@@ -230,10 +223,6 @@ export default function E1Page() {
               'Klik op alle 3 de stappen'
             )}
           </Button>
-
-          <div className="mt-6">
-            <NextStepCard currentModuleId="e1" isCompleted={isCompleted('e1')} />
-          </div>
         </div>
       </main>
 
