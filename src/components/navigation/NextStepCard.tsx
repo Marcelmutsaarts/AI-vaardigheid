@@ -38,7 +38,7 @@ export function NextStepCard({ currentModuleId, isCompleted }: NextStepCardProps
         </p>
         <Link
           href="/diploma"
-          className="inline-flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors hover:opacity-90"
+          className="inline-flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-500 outline-none"
           style={{ backgroundColor: '#10b981' }}
         >
           Bekijk je diploma &rarr;

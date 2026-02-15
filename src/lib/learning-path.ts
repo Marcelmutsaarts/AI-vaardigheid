@@ -186,8 +186,8 @@ const letterColors: Record<string, LetterColor> = {
 // Helper functies
 // -----------------------------------------------------------------------------
 
-export function getModuleById(id: string): ModuleConfig | undefined {
-  return modules.find((m) => m.id === id);
+export function getModuleById(id: string): ModuleConfig | null {
+  return modules.find((m) => m.id === id) ?? null;
 }
 
 export function getModulesByLetter(letter: string): ModuleConfig[] {

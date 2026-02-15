@@ -22,7 +22,6 @@ export function ProgressStepper({ currentModuleId, completedModuleIds }: Progres
       {letterModules.map((mod, index) => {
         const isCompleted = completedModuleIds.includes(mod.id)
         const isCurrent = mod.id === currentModuleId
-        const isFuture = !isCompleted && !isCurrent
 
         // Connecting line before this dot (not for first item)
         const prevModule = index > 0 ? letterModules[index - 1] : null
@@ -46,7 +45,7 @@ export function ProgressStepper({ currentModuleId, completedModuleIds }: Progres
               {isCompleted ? (
                 <button
                   onClick={() => router.push(mod.path)}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white text-xs font-bold transition-colors hover:opacity-80"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white text-xs font-bold transition-colors hover:opacity-80 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-500 outline-none"
                   style={{ backgroundColor: '#10b981' }}
                   aria-label={`Ga naar ${mod.label} (afgerond)`}
                 >
