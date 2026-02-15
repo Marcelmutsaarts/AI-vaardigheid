@@ -18,7 +18,7 @@ export function ProgressStepper({ currentModuleId, completedModuleIds }: Progres
   const letterColor = getLetterColor(currentModule.letter)
 
   return (
-    <div data-testid="progress-stepper" className="flex items-center justify-center gap-0 py-3">
+    <div data-testid="progress-stepper" className="flex items-center justify-center gap-0 py-4 mb-2">
       {letterModules.map((mod, index) => {
         const isCompleted = completedModuleIds.includes(mod.id)
         const isCurrent = mod.id === currentModuleId

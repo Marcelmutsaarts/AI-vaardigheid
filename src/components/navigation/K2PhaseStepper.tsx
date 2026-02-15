@@ -13,7 +13,7 @@ export function K2PhaseStepper({ currentPhaseId, completedPhaseIds, onPhaseClick
   const letterColor = getLetterColor('K')
 
   return (
-    <div data-testid="k2-phase-stepper" className="flex items-center justify-center gap-0 py-2">
+    <div data-testid="k2-phase-stepper" className="flex items-center justify-center gap-0 py-3 mb-2">
       {phases.map((phase, index) => {
         const isCompleted = completedPhaseIds.includes(phase.id)
         const isCurrent = phase.id === currentPhaseId

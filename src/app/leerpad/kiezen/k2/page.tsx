@@ -425,6 +425,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
+            <div className="border-t border-gray-100 mx-8" />
             <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
             <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
 
@@ -491,6 +492,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
+            <div className="border-t border-gray-100 mx-8" />
             <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
             <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
 
@@ -684,6 +686,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
+            <div className="border-t border-gray-100 mx-8" />
             <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
             <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
 
@@ -882,6 +885,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
+            <div className="border-t border-gray-100 mx-8" />
             <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
             <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
 
@@ -1085,6 +1089,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-4xl">
             <ProgressStepper currentModuleId="k2" completedModuleIds={completedModules} />
+            <div className="border-t border-gray-100 mx-8" />
             <K2PhaseStepper currentPhaseId={phase} completedPhaseIds={completedPhases} onPhaseClick={handlePhaseClick} />
             <ContextBanner moduleId="k2" customDoel={currentK2Phase?.doel} customActie={currentK2Phase?.actie} />
 
