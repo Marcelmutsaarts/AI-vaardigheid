@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { promptOnderdelen, getOnderdeelLabel } from '@/lib/instrueren-content'
+import { ProgressStepper, ContextBanner, NextStepCard } from '@/components/navigation'
+import { useModuleProgress } from '@/hooks/useModuleProgress'
 
 // Voorbeeld prompt generator - past zich aan op niveau
 const getVoorbeeldPrompt = (schoolType: string, leerjaar: number) => ({
@@ -22,6 +24,7 @@ const getVoorbeeldPrompt = (schoolType: string, leerjaar: number) => ({
 export default function I1Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
+  const { completedModules, markAsCompleted, isCompleted } = useModuleProgress()
   const [expandedOnderdeel, setExpandedOnderdeel] = useState<string | null>(null)
   const [bekendeOnderdelen, setBekendeOnderdelen] = useState<Set<string>>(new Set())
 
@@ -55,6 +58,7 @@ export default function I1Page() {
 
   const handleComplete = () => {
     updateProgress('instrueren', 'i1', true)
+    markAsCompleted('i1')
     router.push('/leerpad/instrueren/i2')
   }
 
@@ -75,6 +79,9 @@ export default function I1Page() {
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
+          <ProgressStepper currentModuleId="i1" completedModuleIds={completedModules} />
+          <ContextBanner moduleId="i1" />
+
           {/* Terug link */}
           <Link
             href="/leerpad/instrueren"
@@ -217,6 +224,10 @@ export default function I1Page() {
               'Bekijk eerst alle onderdelen'
             )}
           </Button>
+
+          <div className="mt-6">
+            <NextStepCard currentModuleId="i1" isCompleted={isCompleted('i1')} />
+          </div>
         </div>
       </main>
 
