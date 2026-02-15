@@ -1,0 +1,101 @@
+Plan: Begeleiding & Orientatie voor Leerlingen
+===============================================
+
+Het probleem
+------------
+De app heeft goede content, maar leerlingen missen overzicht:
+- Waar ben ik? -- Geen breadcrumbs, geen stap-indicator binnen modules
+- Wat moet ik hier doen? -- Soms wel een "Wat ga je doen?"-blok, maar niet consistent
+- Wat komt hierna? -- Na afronding van een module is onduidelijk wat de volgende stap is
+
+
+Drie ingrepen
+=============
+
+
+1. Stappenbalk (ProgressStepper component)
+------------------------------------------
+Een compact horizontaal component bovenaan elke module-pagina dat toont:
+
+    K1 * --- K2 o        (op module-niveau)
+
+- Huidige stap is gemarkeerd (filled dot + label)
+- Afgeronde stappen zijn groen met vinkje
+- Toekomstige stappen zijn grijs
+- Klikbaar naar afgeronde stappen (terug navigeren)
+
+Voor K2 specifiek (5 interne fasen): een tweede, kleinere stappenbalk:
+
+    Kiezen * - Onderdelen o - Aanpak o - Inschatten o - Experimenteren o
+
+Dit lost het grootste pijnpunt op: K2 is de meest complexe flow en leerlingen
+weten nu niet dat er 5 fasen zijn of waar ze zitten.
+
+
+2. Contextbanner per pagina
+----------------------------
+Een klein, consistent blok direct onder de stappenbalk met twee regels:
+
+  Doel:   "Leer hoe je een goede prompt opbouwt"
+  Actie:  "Bekijk alle vier de onderdelen en probeer het voorbeeld"
+
+- Elke pagina krijgt een korte doel + actie tekst
+- Altijd zichtbaar, niet wegklikbaar
+- Licht gekleurd achtergrondblok in de modulekleur (K=paars, I, E, S)
+
+Dit zorgt dat een leerling die terugkomt na een pauze direct weet:
+wat is dit, wat moet ik doen.
+
+
+3. "Volgende stap"-kaart na afronding
+--------------------------------------
+Wanneer een module is afgerond, verschijnt onderaan een duidelijke kaart:
+
+    +----------------------------------+
+    |  V K1 afgerond!                  |
+    |                                  |
+    |  Volgende: K2 - Taak-Ontleder   |
+    |  "Pas je keuzes toe op een       |
+    |   echte opdracht"               |
+    |                                  |
+    |  [Ga naar K2 ->]                 |
+    +----------------------------------+
+
+- Toont wat net is afgerond (bevestiging)
+- Toont wat de logische volgende stap is (met korte omschrijving)
+- Bij laatste module van een KIES-letter: "Ga verder met [volgende letter]"
+- Bij allerlaatste module (S3): link naar diploma-pagina
+
+
+Implementatie-aanpak
+====================
+
+Wat                 Hoe                                     Bestanden
+---                 ---                                     ---------
+ProgressStepper     Nieuw gedeeld component                 src/components/navigation/ProgressStepper.tsx
+ContextBanner       Nieuw gedeeld component                 src/components/navigation/ContextBanner.tsx
+NextStepCard        Nieuw gedeeld component                 src/components/navigation/NextStepCard.tsx
+Route-config        Centraal bestand met volgorde/titels    src/lib/learning-path.ts
+Module-pagina's     Elk krijgt de 3 componenten             Alle 9 pagina's in src/app/leerpad/
+K2 fase-indicator   Extra stepper binnen K2                 src/app/leerpad/kiezen/k2/page.tsx
+
+De route-config (learning-path.ts) is de kern -- een centraal bestand dat definieert:
+
+    {
+      id: 'k1',
+      label: 'Drie manieren',
+      doel: '...',
+      actie: '...',
+      next: 'k2',
+      path: '/leerpad/kiezen/k1'
+    }
+
+Alle drie de componenten lezen hieruit. Zo hoef je bij toevoegen van een module
+maar op een plek iets te wijzigen.
+
+
+Wat bewust NIET wordt voorgesteld
+=================================
+- Geen overall percentage-balk -- voegt druk toe, past niet bij "geen hierarchie"
+- Geen tijdsindicatie -- "dit duurt 10 min" is vaak fout en stressvol
+- Geen verplichte volgorde afdwingen -- leerlingen moeten vrij kunnen navigeren
