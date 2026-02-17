@@ -6,57 +6,48 @@ import Link from 'next/link'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
-import { kiesKleuren } from '@/lib/utils'
-
-const sModules = [
-  {
-    id: 's1',
-    titel: 'Wat deel je?',
-    beschrijving: 'Denk na over wat je aan AI vertelt',
-  },
-  {
-    id: 's2',
-    titel: 'Wanneer vertel je het?',
-    beschrijving: 'Transparantie over AI-gebruik',
-  },
-  {
-    id: 's3',
-    titel: 'AI en energie',
-    beschrijving: 'Hoeveel stroom kost AI eigenlijk?',
-  },
-]
+import { ArrowLeft } from 'lucide-react'
+import { getLetterByKey, isSubStepAccessible } from '@/lib/navigation'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
+import SubStepCard from '@/components/navigation/SubStepCard'
+import NextStepButton from '@/components/navigation/NextStepButton'
 
 export default function SpelregelsOverzicht() {
   const router = useRouter()
   const { niveau, progress } = useNiveau()
 
   useEffect(() => {
-    // MBO/HBO hebben geen leerjaar, VO niveaus wel
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
 
-  // MBO/HBO hebben geen leerjaar, VO niveaus wel
   const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
   if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
-  const isCompleted = (moduleId: string) => {
-    return progress.spelregels?.[moduleId as keyof typeof progress.spelregels] || false
+  const letter = getLetterByKey('spelregels')!
+
+  const getSubStepState = (subStepId: string, index: number): 'completed' | 'active' | 'locked' => {
+    const letterProgress = progress.spelregels as Record<string, boolean>
+    if (letterProgress[subStepId]) return 'completed'
+    const isFirst = letter.subSteps.findIndex(s => {
+      const lp = progress.spelregels as Record<string, boolean>
+      return !lp[s.id]
+    }) === index
+    if (isFirst && isSubStepAccessible(subStepId, progress)) return 'active'
+    return 'locked'
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="spelregels" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
-          {/* Terug link */}
           <Link
             href="/dashboard"
             className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
@@ -65,50 +56,33 @@ export default function SpelregelsOverzicht() {
             Dashboard
           </Link>
 
-          {/* Header */}
           <div className="text-center mb-8">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4"
-              style={{ backgroundColor: kiesKleuren.spelregels }}
+              style={{ backgroundColor: letter.color }}
             >
               S
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Spelregels</h1>
-            <p className="text-gray-600">Klik op een onderdeel om te beginnen</p>
+            <p className="text-gray-600">
+              Wat mag en moet bij AI-gebruik?
+            </p>
           </div>
 
-          {/* Modules */}
           <div className="space-y-3 mb-8">
-            {sModules.map((module, index) => {
-              const completed = isCompleted(module.id)
-              return (
-                <Link key={module.id} href={`/leerpad/spelregels/${module.id}`}>
-                  <div className="bg-white rounded-xl border shadow-sm hover:shadow-md transition-all p-4 flex items-center gap-4">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold flex-shrink-0"
-                      style={{ backgroundColor: completed ? '#22c55e' : kiesKleuren.spelregels }}
-                    >
-                      {completed ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900">{module.titel}</h3>
-                      <p className="text-sm text-gray-500 truncate">{module.beschrijving}</p>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                  </div>
-                </Link>
-              )
-            })}
+            {letter.subSteps.map((subStep, index) => (
+              <SubStepCard
+                key={subStep.id}
+                subStep={subStep}
+                index={index}
+                letterColor={letter.color}
+                state={getSubStepState(subStep.id, index)}
+              />
+            ))}
           </div>
 
-          {/* Volgende stap button */}
           <div className="text-center">
-            <Button asChild size="lg">
-              <Link href="/leerpad/spelregels/s1">
-                Start met leren
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+            <NextStepButton context="letter-overview" letterKey="spelregels" />
           </div>
         </div>
       </main>

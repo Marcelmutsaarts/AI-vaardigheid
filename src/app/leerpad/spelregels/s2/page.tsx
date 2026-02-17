@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 type SchoolbeleidAntwoord = 'ja-ken' | 'ja-niet-goed' | 'nee-weet-niet' | null
 
@@ -170,6 +171,7 @@ export default function S2Page() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="spelregels" activeSubStep="s2" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">

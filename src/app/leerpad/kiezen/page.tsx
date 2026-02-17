@@ -6,51 +6,46 @@ import Link from 'next/link'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
-import { kiesKleuren } from '@/lib/utils'
-
-const kModules = [
-  {
-    id: 'k1',
-    titel: 'Drie manieren',
-    beschrijving: 'Zelf, samen met AI, of AI doet het',
-  },
-  {
-    id: 'k2',
-    titel: 'Oefenen',
-    beschrijving: 'Pas je keuzes toe op een opdracht',
-  },
-]
+import { ArrowLeft } from 'lucide-react'
+import { kiesStructuur, getLetterByKey, isSubStepAccessible } from '@/lib/navigation'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
+import SubStepCard from '@/components/navigation/SubStepCard'
+import NextStepButton from '@/components/navigation/NextStepButton'
 
 export default function KiezenOverzicht() {
   const router = useRouter()
   const { niveau, progress } = useNiveau()
 
   useEffect(() => {
-    // MBO/HBO hebben geen leerjaar, VO niveaus wel
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
 
-  // MBO/HBO hebben geen leerjaar, VO niveaus wel
   const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
   if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
-  const isCompleted = (moduleId: string) => {
-    return progress.kiezen[moduleId as keyof typeof progress.kiezen] || false
-  }
+  const letter = getLetterByKey('kiezen')!
 
-  // Vind eerste niet-voltooide module
-  const nextModule = kModules.find(m => !isCompleted(m.id)) || kModules[0]
+  const getSubStepState = (subStepId: string, index: number): 'completed' | 'active' | 'locked' => {
+    const letterProgress = progress.kiezen as Record<string, boolean>
+    if (letterProgress[subStepId]) return 'completed'
+    // First uncompleted substep that is accessible = active
+    const isFirst = letter.subSteps.findIndex(s => {
+      const lp = progress.kiezen as Record<string, boolean>
+      return !lp[s.id]
+    }) === index
+    if (isFirst && isSubStepAccessible(subStepId, progress)) return 'active'
+    return 'locked'
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="kiezen" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
@@ -67,7 +62,7 @@ export default function KiezenOverzicht() {
           <div className="text-center mb-8">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4"
-              style={{ backgroundColor: kiesKleuren.kiezen }}
+              style={{ backgroundColor: letter.color }}
             >
               K
             </div>
@@ -79,36 +74,20 @@ export default function KiezenOverzicht() {
 
           {/* Modules */}
           <div className="space-y-3 mb-8">
-            {kModules.map((module, index) => {
-              const completed = isCompleted(module.id)
-              return (
-                <Link key={module.id} href={`/leerpad/kiezen/${module.id}`}>
-                  <div className="bg-white rounded-xl border shadow-sm hover:shadow-md transition-all p-4 flex items-center gap-4">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold flex-shrink-0"
-                      style={{ backgroundColor: completed ? '#22c55e' : kiesKleuren.kiezen }}
-                    >
-                      {completed ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900">{module.titel}</h3>
-                      <p className="text-sm text-gray-500 truncate">{module.beschrijving}</p>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                  </div>
-                </Link>
-              )
-            })}
+            {letter.subSteps.map((subStep, index) => (
+              <SubStepCard
+                key={subStep.id}
+                subStep={subStep}
+                index={index}
+                letterColor={letter.color}
+                state={getSubStepState(subStep.id, index)}
+              />
+            ))}
           </div>
 
           {/* Volgende stap button */}
           <div className="text-center">
-            <Button asChild size="lg">
-              <Link href="/leerpad/kiezen/k1">
-                Volgende stap
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+            <NextStepButton context="letter-overview" letterKey="kiezen" />
           </div>
         </div>
       </main>

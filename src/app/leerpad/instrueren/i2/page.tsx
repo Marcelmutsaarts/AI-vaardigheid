@@ -30,6 +30,7 @@ import {
   getOnderdeelLabel
 } from '@/lib/instrueren-content'
 import { formatMarkdown } from '@/lib/format-markdown'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 interface PromptInput {
   rol: string
@@ -539,6 +540,7 @@ Belangrijk:
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
+        <ProgressStepper activeLetter="instrueren" activeSubStep="i2" />
 
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
@@ -616,6 +618,7 @@ Belangrijk:
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="instrueren" activeSubStep="i2" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">

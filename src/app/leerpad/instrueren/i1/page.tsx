@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { promptOnderdelen, getOnderdeelLabel } from '@/lib/instrueren-content'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 // Voorbeeld prompt generator - past zich aan op niveau
 const getVoorbeeldPrompt = (schoolType: string, leerjaar: number) => ({
@@ -72,6 +73,7 @@ export default function I1Page() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="instrueren" activeSubStep="i1" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">

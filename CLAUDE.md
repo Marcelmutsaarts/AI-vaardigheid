@@ -128,3 +128,21 @@ Na K2 kan de leerling experimenteren met strategie-aanpassingen:
 - Kan aangeven: tevreden of aanpassen
 - Bij aanpassen: keuze uit 9 rollen (Zelf + 4 AI-helpt + 4 AI-doet)
 - Na wijziging: opnieuw inschatten via resultaat-fase
+
+## Navigatie Componenten
+
+### ProgressStepper
+Persistente KIES-voortgangsbalk die op elke leerpad-pagina verschijnt.
+Locatie: `src/components/navigation/ProgressStepper.tsx`
+Props: `activeLetter` (kiezen|instrueren|evalueren|spelregels), `activeSubStep` (optioneel substap ID)
+
+### NextStepButton
+Contextuele button die dynamische tekst toont.
+Locatie: `src/components/navigation/NextStepButton.tsx`
+
+### SubStepCard
+Visuele kaart met completed/active/locked states.
+Locatie: `src/components/navigation/SubStepCard.tsx`
+
+### Navigatie-data
+Gecentraliseerde navigatiestructuur in `src/lib/navigation.ts`

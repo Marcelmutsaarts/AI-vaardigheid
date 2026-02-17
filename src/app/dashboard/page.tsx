@@ -3,47 +3,12 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useNiveau, Progress } from '@/contexts/NiveauContext'
+import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, CheckCircle2 } from 'lucide-react'
-import { kiesKleuren } from '@/lib/utils'
-
-const kiesData = [
-  {
-    key: 'kiezen' as keyof Progress,
-    letter: 'K',
-    title: 'Kiezen',
-    description: 'Wanneer gebruik je AI?',
-    color: kiesKleuren.kiezen,
-    href: '/leerpad/kiezen',
-  },
-  {
-    key: 'instrueren' as keyof Progress,
-    letter: 'I',
-    title: 'Instrueren',
-    description: 'Hoe vraag je het goed?',
-    color: kiesKleuren.instrueren,
-    href: '/leerpad/instrueren',
-  },
-  {
-    key: 'evalueren' as keyof Progress,
-    letter: 'E',
-    title: 'Evalueren',
-    description: 'Klopt wat AI zegt?',
-    color: kiesKleuren.evalueren,
-    href: '/leerpad/evalueren',
-  },
-  {
-    key: 'spelregels' as keyof Progress,
-    letter: 'S',
-    title: 'Spelregels',
-    description: 'Wat mag en moet?',
-    color: kiesKleuren.spelregels,
-    href: '/leerpad/spelregels',
-  },
-]
+import { CheckCircle2 } from 'lucide-react'
+import { kiesStructuur, isLetterComplete } from '@/lib/navigation'
+import NextStepButton from '@/components/navigation/NextStepButton'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -63,27 +28,7 @@ export default function Dashboard() {
     return null
   }
 
-  const isModuleComplete = (key: keyof Progress): boolean => {
-    const modules = progress[key]
-    return Object.values(modules).every(Boolean)
-  }
-
-  const getNextModule = (): { kiesLetter: string; href: string } | null => {
-    for (const item of kiesData) {
-      const modules = progress[item.key]
-      for (const [moduleName, isCompleted] of Object.entries(modules)) {
-        if (!isCompleted) {
-          return {
-            kiesLetter: item.title,
-            href: `${item.href}/${moduleName}`,
-          }
-        }
-      }
-    }
-    return null
-  }
-
-  const nextModule = getNextModule()
+  const allComplete = kiesStructuur.every(l => isLetterComplete(l.key, progress))
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -105,7 +50,7 @@ export default function Dashboard() {
           <div className="mb-8">
             {/* KIES letters dicht bij elkaar */}
             <div className="flex justify-center gap-1 md:gap-2 mb-2">
-              {kiesData.map((item) => (
+              {kiesStructuur.map((item) => (
                 <span
                   key={item.key}
                   className="text-4xl md:text-5xl font-black"
@@ -119,7 +64,7 @@ export default function Dashboard() {
             {/* Schuine verbindingslijnen - van letters naar kaarten */}
             <div className="flex justify-center mb-4">
               <svg viewBox="0 0 400 30" className="w-full max-w-2xl h-8">
-                {kiesData.map((item, index) => {
+                {kiesStructuur.map((item, index) => {
                   // Letters staan dicht bij elkaar in het midden (rond x=200)
                   // Kaarten staan verspreid over de breedte
                   const letterSpacing = 25
@@ -146,8 +91,8 @@ export default function Dashboard() {
 
             {/* Kaarten */}
             <div className="grid grid-cols-4 gap-2 md:gap-3">
-              {kiesData.map((item) => {
-                const isComplete = isModuleComplete(item.key)
+              {kiesStructuur.map((item) => {
+                const isComplete = isLetterComplete(item.key, progress)
                 return (
                   <Link key={item.key} href={item.href} className="group">
                     <div className={`bg-white rounded-xl shadow-sm border hover:shadow-md transition-all w-full overflow-hidden ${isComplete ? 'ring-2 ring-green-500' : ''}`}>
@@ -165,6 +110,15 @@ export default function Dashboard() {
                         <p className="text-xs text-gray-500 mt-1 hidden md:block">
                           {item.description}
                         </p>
+                        <div className="flex gap-1 mt-2">
+                          {item.subSteps.map(sub => {
+                            const lp = progress[item.key] as Record<string, boolean>
+                            return (
+                              <div key={sub.id} className="w-1.5 h-1.5 rounded-full"
+                                   style={{ backgroundColor: lp[sub.id] ? item.color : '#e5e7eb' }} />
+                            )
+                          })}
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -174,15 +128,10 @@ export default function Dashboard() {
           </div>
 
           {/* Next Step - prominent call to action */}
-          {nextModule ? (
+          {!allComplete ? (
             <div className="bg-white rounded-xl shadow-sm border p-6 mb-6 text-center">
               <p className="text-gray-600 mb-3">Ga verder waar je gebleven was</p>
-              <Button asChild size="lg">
-                <Link href={nextModule.href}>
-                  Volgende stap
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
+              <NextStepButton context="dashboard" />
             </div>
           ) : (
             <div className="bg-green-50 rounded-xl border border-green-200 p-6 mb-6 text-center">

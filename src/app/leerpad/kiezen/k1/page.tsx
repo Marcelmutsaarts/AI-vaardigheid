@@ -11,6 +11,7 @@ import { ArrowRight, ArrowLeft } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { aiHelptRollen, aiDoetRollen, AIRol } from '@/lib/kiezen-content'
 import { ChatModal } from '@/components/ChatModal'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 export default function K1Page() {
   const router = useRouter()
@@ -49,6 +50,7 @@ export default function K1Page() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="kiezen" activeSubStep="k1" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-4xl">

@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Zap, Image as ImageIcon, Video, MessageSquare, CheckCircle2, Award, Home } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 type Antwoord = '10' | '100' | '1000' | null
 
@@ -127,6 +128,7 @@ export default function S3Page() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="spelregels" activeSubStep="s3" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">

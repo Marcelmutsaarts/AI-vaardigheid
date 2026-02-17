@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, User, Bot, CheckCircle2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { getMensAIMensTekst, aiValkuilen } from '@/lib/evalueren-content'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 export default function E1Page() {
   const router = useRouter()
@@ -49,6 +50,7 @@ export default function E1Page() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="evalueren" activeSubStep="e1" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">

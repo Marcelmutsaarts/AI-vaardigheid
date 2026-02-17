@@ -16,6 +16,7 @@ import {
   aiDoetRollen,
   Aanpak
 } from '@/lib/kiezen-content'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 interface Stap {
   id: string
@@ -404,6 +405,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
+        <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <Link
@@ -466,6 +468,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
+        <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <button
@@ -655,6 +658,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
+        <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <button
@@ -849,6 +853,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
+        <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <div className="mb-6">
@@ -1047,6 +1052,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
+        <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-4xl">
             {/* Header */}

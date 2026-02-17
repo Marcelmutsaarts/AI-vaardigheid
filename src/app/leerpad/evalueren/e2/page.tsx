@@ -18,6 +18,7 @@ import {
 import { kiesKleuren } from '@/lib/utils'
 import { aiValkuilen, evalueerPrompts } from '@/lib/evalueren-content'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 type Fase = 'intro' | 'bias' | 'hallucinatie' | 'sycofantie' | 'klaar'
 
@@ -235,6 +236,7 @@ Geef je antwoord in EXACT dit JSON format:
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="evalueren" activeSubStep="e2" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl">

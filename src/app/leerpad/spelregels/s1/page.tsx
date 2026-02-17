@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
+import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 type CategorieId = 'van-mij' | 'van-anderen' | 'geheim'
 
@@ -140,6 +141,7 @@ export default function S1Page() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
+      <ProgressStepper activeLetter="spelregels" activeSubStep="s1" />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
