@@ -21,6 +21,7 @@ interface TransitionScreenProps {
   activeStepId?: string
   stepColor?: string
   dashboardHref?: string
+  onBeforeNavigate?: () => void
 }
 
 export default function TransitionScreen({
@@ -35,6 +36,7 @@ export default function TransitionScreen({
   activeStepId,
   stepColor = '#a15df5',
   dashboardHref = '/dashboard',
+  onBeforeNavigate,
 }: TransitionScreenProps) {
   const router = useRouter()
   const isModuleComplete = variant === 'module-complete'
@@ -93,7 +95,10 @@ export default function TransitionScreen({
 
           {/* Primary button */}
           <button
-            onClick={() => router.push(buttonHref)}
+            onClick={() => {
+              onBeforeNavigate?.()
+              router.push(buttonHref)
+            }}
             className={cn(
               'w-full py-3 px-8 rounded-xl font-semibold text-white transition-colors text-base',
               'hover:opacity-90'

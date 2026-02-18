@@ -264,7 +264,7 @@ Houd het heel kort en concreet.`,
 
   const handleBackToDashboard = () => {
     // Data blijft bewaard zodat S2 het kan gebruiken
-    router.push('/dashboard')
+    router.push('/leerpad/kiezen/k-complete')
   }
 
   const handleStartOver = () => {

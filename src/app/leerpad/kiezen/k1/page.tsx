@@ -35,7 +35,7 @@ export default function K1Page() {
 
   const handleComplete = () => {
     updateProgress('kiezen', 'k1', true)
-    router.push('/leerpad/kiezen/k2')
+    router.push('/leerpad/kiezen/k1-complete')
   }
 
   const openChat = (role: AIRol, mode: 'helpt' | 'doet') => {

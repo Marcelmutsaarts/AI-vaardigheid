@@ -11,6 +11,7 @@ import { kiesStructuur, getLetterByKey, isSubStepAccessible } from '@/lib/naviga
 import ProgressStepper from '@/components/navigation/ProgressStepper'
 import SubStepCard from '@/components/navigation/SubStepCard'
 import NextStepButton from '@/components/navigation/NextStepButton'
+import { isTransitionSeen } from '@/lib/transition-utils'
 
 export default function KiezenOverzicht() {
   const router = useRouter()
@@ -20,6 +21,12 @@ export default function KiezenOverzicht() {
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
+      return
+    }
+
+    // Bij eerste bezoek: toon intro-scherm
+    if (!isTransitionSeen('k-intro')) {
+      router.replace('/leerpad/kiezen/intro')
     }
   }, [niveau, router])
 
