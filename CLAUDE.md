@@ -55,9 +55,19 @@ Gebaseerd op Mollick & Mollick (2023) "Assigning AI: Seven Approaches for Studen
 **Geen hiërarchie** - alle aanpakken hebben hun plek. Het gaat om bewust kiezen.
 
 ### K-module structuur
-- K1: Wat kan AI wel en niet? (quiz/ontdek)
-- K2: De vijf aanpakken (uitleg + herkenoefening)
-- K3: Taak-Ontleder (kernoefening)
+- K1: Drie manieren om AI te gebruiken (twee-fasen flow: drieluik + rollen)
+- K2: Taak-Ontleder (kernoefening + experimenteren)
+
+### K1 Twee-fasen flow
+**Fase 1 (drieluik)**: Drie kaarten: Zelf (✋), Samen met AI (🤝), AI doet het (🤖)
+**Fase 2 (rollen)**: Bij klik op categorie klappen rollen open met interactie
+
+8 rollen: Uitlegger, Brainstormer, Feedbackgever, Oefenmaatje (samen) + Schrijver, Vertaler, Verbeteraar, Samenvatter (AI doet)
+- Type "onderwerp": leerling kiest uit 2-3 niveau-specifieke onderwerpen
+- Type "tekst": voorbeeldtekst + "Probeer het" knop
+- Voortgangseis: 1 rol per categorie → NextStepButton verschijnt
+- Data: `src/lib/k1-roles-data.ts`
+- localStorage key: `kies-k1-roles-tried`
 
 ### Opdrachten per niveau
 - VMBO 1-2: Ziek melden
@@ -144,5 +154,43 @@ Locatie: `src/components/navigation/NextStepButton.tsx`
 Visuele kaart met completed/active/locked states.
 Locatie: `src/components/navigation/SubStepCard.tsx`
 
+### TransitionScreen
+Herbruikbaar transitiescherm met drie varianten: `module-intro`, `step-complete`, `module-complete`.
+Locatie: `src/components/navigation/TransitionScreen.tsx`
+Props: `variant`, `activeLetter`, `heading`, `subtext`, `buttonLabel`, `buttonHref`, `steps`, `completedSteps`, `activeStepId`, `stepColor`, `onBeforeNavigate`
+
+### StepRoadmap
+Mini-roadmap met bolletjes op een lijn (completed/active/upcoming states). Herbruikbaar voor alle modules.
+Locatie: `src/components/navigation/StepRoadmap.tsx`
+Props: `steps` (StepInfo[]), `completedSteps`, `activeStepId`, `color`
+
 ### Navigatie-data
 Gecentraliseerde navigatiestructuur in `src/lib/navigation.ts`
+
+### Transitie-data
+Teksten per niveau en transitietype in `src/lib/transition-texts.ts`
+Helpers (getNiveauGroep, isTransitionSeen, markTransitionSeen) in `src/lib/transition-utils.ts`
+localStorage key: `kies-transitions-seen` (array van geziene transitie-IDs)
+
+## Transitieschermen
+
+### Concept
+Tussen substappen en bij module-start/-einde verschijnen transitieschermen die oriëntatie geven. Ze worden per leerling maar 1x getoond (localStorage tracking).
+
+### K-module flow
+1. Eerste keer `/leerpad/kiezen` → redirect naar `/leerpad/kiezen/intro` (K-intro)
+2. K1 afronden → redirect naar `/leerpad/kiezen/k1-complete` (K1→K2 overgang)
+3. K2 experimenteren + "Ja, klaar" → redirect naar `/leerpad/kiezen/k-complete` (K-complete)
+4. Terugkerende leerling → transitieschermen worden overgeslagen
+
+### Routes
+```
+/leerpad/kiezen/intro       - K-module introductie
+/leerpad/kiezen/k1-complete - Overgang K1 → K2
+/leerpad/kiezen/k-complete  - K-module afgerond, door naar Instrueren
+```
+
+### Niveaudifferentiatie teksten
+Drie groepen: VMBO (simpele taal), HAVO (normale taal), VWO (academisch).
+MBO → HAVO teksten, HBO → VWO teksten.
+Placeholders aanwezig voor I, E, S modules.
