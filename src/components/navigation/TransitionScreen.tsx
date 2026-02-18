@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ProgressStepper from './ProgressStepper'
 import StepRoadmap, { type StepInfo } from './StepRoadmap'
@@ -41,6 +40,11 @@ export default function TransitionScreen({
   const router = useRouter()
   const isModuleComplete = variant === 'module-complete'
 
+  const handleNavigate = (href: string) => {
+    onBeforeNavigate?.()
+    router.push(href)
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f8f5ff]">
       {/* ProgressStepper bovenaan */}
@@ -48,7 +52,7 @@ export default function TransitionScreen({
 
       {/* Gecentreerde content */}
       <main className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md text-center">
+        <div className="w-full max-w-md text-center fade-in">
           {/* Mini-roadmap */}
           <div className="mb-8">
             <StepRoadmap
@@ -61,7 +65,7 @@ export default function TransitionScreen({
 
           {/* Module-complete celebration */}
           {isModuleComplete && (
-            <div className="mb-6 animate-scale-in">
+            <div className="mb-6 scale-in">
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto text-white text-2xl"
                 style={{ backgroundColor: stepColor }}
@@ -95,10 +99,7 @@ export default function TransitionScreen({
 
           {/* Primary button */}
           <button
-            onClick={() => {
-              onBeforeNavigate?.()
-              router.push(buttonHref)
-            }}
+            onClick={() => handleNavigate(buttonHref)}
             className={cn(
               'w-full py-3 px-8 rounded-xl font-semibold text-white transition-colors text-base',
               'hover:opacity-90'
@@ -110,19 +111,36 @@ export default function TransitionScreen({
 
           {/* Dashboard link (alleen bij module-complete) */}
           {isModuleComplete && (
-            <Link
-              href={dashboardHref}
+            <button
+              onClick={() => handleNavigate(dashboardHref)}
               className="inline-block mt-4 text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
               Terug naar dashboard
-            </Link>
+            </button>
           )}
         </div>
       </main>
 
-      {/* CSS animation for module-complete */}
+      {/* CSS animations */}
       <style jsx>{`
-        @keyframes scale-in {
+        .fade-in {
+          animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .scale-in {
+          animation: scaleIn 0.5s ease-out 0.2s forwards;
+          opacity: 0;
+        }
+        @keyframes scaleIn {
           0% {
             transform: scale(0);
             opacity: 0;
@@ -134,9 +152,6 @@ export default function TransitionScreen({
             transform: scale(1);
             opacity: 1;
           }
-        }
-        .animate-scale-in {
-          animation: scale-in 0.5s ease-out forwards;
         }
       `}</style>
     </div>
