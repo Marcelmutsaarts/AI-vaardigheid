@@ -32,7 +32,7 @@ interface ChatMessage {
   content: string
 }
 
-type Phase = 'kiezen' | 'voorbeeld' | 'onderdelen' | 'aanpak' | 'resultaat' | 'experimenteren'
+type Phase = 'kiezen' | 'onderdelen' | 'aanpak' | 'resultaat' | 'experimenteren'
 
 const STORAGE_KEY = 'kies-k2-state'
 
@@ -199,15 +199,11 @@ Houd het heel kort en concreet.`,
   // Handlers
   const handleKiesOpdracht = (opdracht: OpdrachtOptie) => {
     setGekozenOpdracht(opdracht)
-    setPhase('voorbeeld')
-  }
-
-  const handleVoorbeeldNaarOnderdelen = () => {
     setPhase('onderdelen')
     // Reset chat met intro bericht
     setChatMessages([{
       role: 'assistant',
-      content: `Je hebt gekozen voor "${gekozenOpdracht?.titel}". Welke stappen denk je dat je moet zetten om dit te maken? Typ je ideeën, of vraag mij om suggesties!`
+      content: `Je hebt gekozen voor "${opdracht.titel}". Welke stappen denk je dat je moet zetten om dit te maken? Typ je ideeën, of vraag mij om suggesties!`
     }])
   }
 
@@ -471,69 +467,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     )
   }
 
-  // ============ FASE 1B: VOORBEELD ============
-  if (phase === 'voorbeeld') {
-    return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <Header />
-        <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
-        <main className="flex-1 py-8">
-          <div className="container mx-auto px-4 max-w-2xl">
-            <button
-              onClick={() => { setGekozenOpdracht(null); setPhase('kiezen') }}
-              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Andere opdracht
-            </button>
-
-            <div className="mb-4">
-              <h1 className="text-xl font-bold text-gray-900 mb-1">{teksten.voorbeeldTitel}</h1>
-              <p className="text-sm text-gray-500">
-                Je gekozen opdracht: <span className="font-medium text-gray-700">{gekozenOpdracht?.titel}</span>
-              </p>
-            </div>
-
-            <p className="text-gray-600 mb-5">
-              {teksten.voorbeeldInleiding}
-            </p>
-
-            {/* Voorbeeld stappen */}
-            <div className="bg-white rounded-xl border shadow-sm p-4 mb-5">
-              <div className="space-y-2">
-                {teksten.voorbeeldStappen.map((stap, index) => (
-                  <div key={index} className="flex items-center gap-3 py-1.5">
-                    <span
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ backgroundColor: kiesKleuren.kiezen }}
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="text-sm text-gray-700">{stap}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <p className="text-gray-600 mb-6">
-              {teksten.voorbeeldAfsluiting}
-            </p>
-
-            <Button
-              onClick={handleVoorbeeldNaarOnderdelen}
-              size="lg"
-              className="w-full"
-            >
-              Aan de slag
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    )
-  }
-
   // ============ FASE 2: ONDERDELEN BEPALEN ============
   if (phase === 'onderdelen') {
     return (
@@ -544,31 +477,27 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
           <div className="container mx-auto px-4 max-w-2xl">
             <button
               onClick={() => setPhase('kiezen')}
-              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
+              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Andere opdracht
             </button>
 
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: kiesKleuren.kiezen }}
-                >
-                  K2
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">{teksten.stap1Titel}</h1>
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                style={{ backgroundColor: kiesKleuren.kiezen }}
+              >
+                K2
               </div>
-              <p className="text-gray-600">
-                <span className="font-medium">{gekozenOpdracht?.titel}</span>
-              </p>
+              <h1 className="text-xl font-bold text-gray-900">{teksten.stap1Titel}</h1>
             </div>
 
-            {/* Uitleg */}
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
-              <p className="text-sm text-gray-700">
-                Bedenk zelf welke stappen je moet zetten om deze opdracht te maken. Wat doe je eerst? Wat daarna? Voeg minimaal 2 stappen toe.
+            {/* Opdracht + instructie kaart */}
+            <div className="bg-purple-50 rounded-xl p-5 mb-3">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{gekozenOpdracht?.titel}</h2>
+              <p className="text-gray-600">
+                {teksten.opdelenInstructie}
               </p>
             </div>
 

@@ -34,17 +34,17 @@ const transitionTexts: Record<TransitionKey, Record<NiveauGroep, TransitionTexts
   'k1-complete': {
     vmbo: {
       heading: 'K1 klaar \u2713',
-      subtext: 'Je weet nu wat AI kan. Nu ga je kiezen: bij welke stap gebruik je AI, en hoe?',
+      subtext: 'Je gaat zo een opdracht uitvoeren. Maar niet in één keer — je bekijkt eerst welke stappen erbij horen.',
       buttonLabel: 'Ga verder \u2192',
     },
     havo: {
       heading: 'K1 afgerond \u2713',
-      subtext: 'Je weet wat AI kan en waar het tekortschiet. Nu ga je oefenen met kiezen: welke aanpak past bij welke stap?',
+      subtext: 'Je gaat zo met een opdracht aan de slag. Eerst bekijk je welke stappen er nodig zijn. Daarna bepaal je per stap hoe je AI wilt inzetten.',
       buttonLabel: 'Ga verder \u2192',
     },
     vwo: {
       heading: 'K1 afgerond \u2713',
-      subtext: 'Je hebt verkend wat AI wel en niet kan. Nu ga je strategisch kiezen: welke aanpak zet je in bij welke stap?',
+      subtext: 'Je gaat een opdracht aanpakken door deze te ontleden in stappen. Per stap bepaal je je strategie: zelf doen, samenwerken met AI, of uitbesteden.',
       buttonLabel: 'Ga verder \u2192',
     },
   },

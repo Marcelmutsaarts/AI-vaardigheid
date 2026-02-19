@@ -56,6 +56,7 @@ Gebaseerd op Mollick & Mollick (2023) "Assigning AI: Seven Approaches for Studen
 
 ### K-module structuur
 - K1: Drie manieren om AI te gebruiken (twee-fasen flow: drieluik + rollen)
+- K1→K2 transitie: Voorbeeld "presentatie maken" met niveau-afhankelijke stappen
 - K2: Taak-Ontleder (kernoefening + experimenteren)
 
 ### K1 Twee-fasen flow
@@ -68,6 +69,18 @@ Gebaseerd op Mollick & Mollick (2023) "Assigning AI: Seven Approaches for Studen
 - Voortgangseis: 1 rol per categorie → NextStepButton verschijnt
 - Data: `src/lib/k1-roles-data.ts`
 - localStorage key: `kies-k1-roles-tried`
+
+### K1→K2 Transitiescherm
+- Route: `/leerpad/kiezen/k1-complete`
+- Custom layout (niet TransitionScreen component) met voorbeeld-blok
+- Voorbeeld "Een presentatie maken" met niveau-afhankelijke stappen (4 voor VMBO, 5 voor HAVO/VWO)
+- Data: `k2VoorbeeldPerNiveau` in `src/lib/kiezen-content.ts`
+
+### K2 Opdelen-scherm
+- Samengevoegde opdrachtkaart (purple-50): opdrachtnaam + niveau-afhankelijke instructie
+- Instructieteksten in `k2Teksten.opdelenInstructie` per niveaugroep
+- Disabled "Verder →" knop met subtiele grijze hint (geen rode foutmelding)
+- Data: `k2Teksten` in `src/lib/kiezen-content.ts`
 
 ### Opdrachten per niveau
 - VMBO 1-2: Ziek melden

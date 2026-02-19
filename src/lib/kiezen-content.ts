@@ -583,56 +583,69 @@ type NiveauGroep = 'vmbo' | 'havo' | 'vwo'
 export interface K2Teksten {
   introTekst: string
   hoeWerktHet: string
-  voorbeeldTitel: string
-  voorbeeldInleiding: string
-  voorbeeldStappen: string[]
-  voorbeeldAfsluiting: string
   stap1Titel: string
+  opdelenInstructie: string
 }
 
 export const k2Teksten: Record<NiveauGroep, K2Teksten> = {
   vmbo: {
     introTekst: 'Je gaat zo een opdracht uitvoeren. Maar niet in één keer — je bekijkt eerst welke stappen erbij horen. En bij elke stap bepaal je: doe ik dit zelf, of kan AI me helpen?',
     hoeWerktHet: 'Kies eerst een opdracht. Dan ga je samen kijken welke stappen er nodig zijn.',
-    voorbeeldTitel: 'Zo werkt het',
-    voorbeeldInleiding: 'Als je iets moet doen voor school, zijn dat eigenlijk altijd meerdere kleine stappen. Kijk maar — neem als voorbeeld het maken van een presentatie:',
-    voorbeeldStappen: [
+    stap1Titel: 'Opdelen in stappen',
+    opdelenInstructie: 'Welke stappen heb je nodig om dit te doen? Wat doe je eerst? Wat daarna?',
+  },
+  havo: {
+    introTekst: 'Je gaat zo met een opdracht aan de slag. Eerst bekijk je welke stappen er nodig zijn. Daarna bepaal je per stap hoe je AI wilt inzetten.',
+    hoeWerktHet: 'Kies een opdracht. Daarna bedenk je welke stappen nodig zijn en kies je per stap je aanpak.',
+    stap1Titel: 'Opdelen in stappen',
+    opdelenInstructie: 'Welke stappen heb je nodig? Bedenk wat je eerst doet en wat daarna komt.',
+  },
+  vwo: {
+    introTekst: 'Je gaat een opdracht aanpakken door deze te ontleden in stappen. Per stap bepaal je je strategie: zelf doen, samenwerken met AI, of uitbesteden aan AI.',
+    hoeWerktHet: 'Kies een opdracht. Je ontleedt deze in stappen en bepaalt per stap je AI-strategie.',
+    stap1Titel: 'Opdelen in stappen',
+    opdelenInstructie: 'Ontleed deze opdracht in stappen. Wat is de logische volgorde?',
+  },
+}
+
+// Voorbeeld-data voor het K1→K2 transitiescherm
+export interface K2VoorbeeldData {
+  intro: string
+  stappen: string[]
+  outro: string
+}
+
+export const k2VoorbeeldPerNiveau: Record<NiveauGroep, K2VoorbeeldData> = {
+  vmbo: {
+    intro: 'Kijk maar — neem als voorbeeld het maken van een presentatie:',
+    stappen: [
       'Bedenken waar je presentatie over gaat',
       'Informatie opzoeken over het onderwerp',
       'Slides maken met tekst en plaatjes',
       'Oefenen met presenteren',
     ],
-    voorbeeldAfsluiting: 'Zie je? Vier losse stappen. Dat ga jij nu ook doen met je eigen opdracht.',
-    stap1Titel: 'Welke stappen heb je nodig?',
+    outro: 'Zie je? Vier losse stappen. Dat ga jij nu ook doen.',
   },
   havo: {
-    introTekst: 'Je gaat zo met een opdracht aan de slag. Eerst bekijk je welke stappen er nodig zijn. Daarna bepaal je per stap hoe je AI wilt inzetten.',
-    hoeWerktHet: 'Kies een opdracht. Daarna bedenk je welke stappen nodig zijn en kies je per stap je aanpak.',
-    voorbeeldTitel: 'Zo werkt het',
-    voorbeeldInleiding: 'Elke opdracht bestaat uit meerdere stappen. Dat zie je misschien niet meteen, maar als je erover nadenkt, kun je elke taak opdelen. Neem als voorbeeld het maken van een presentatie:',
-    voorbeeldStappen: [
+    intro: 'Elke opdracht bestaat uit meerdere stappen. Neem als voorbeeld een presentatie maken:',
+    stappen: [
       'Onderwerp kiezen en afbakenen',
       'Informatie verzamelen en bronnen zoeken',
       'Structuur bepalen (inleiding, kern, slot)',
       'Slides ontwerpen met tekst en beeld',
       'Presentatie oefenen en bijschaven',
     ],
-    voorbeeldAfsluiting: 'Zo simpel kan het zijn. Nu ga jij je eigen opdracht opdelen.',
-    stap1Titel: 'Welke stappen heb je nodig?',
+    outro: 'Zo simpel kan het zijn. Nu ga jij dit zelf doen.',
   },
   vwo: {
-    introTekst: 'Je gaat een opdracht aanpakken door deze te ontleden in stappen. Per stap bepaal je je strategie: zelf doen, samenwerken met AI, of uitbesteden aan AI.',
-    hoeWerktHet: 'Kies een opdracht. Je ontleedt deze in stappen en bepaalt per stap je AI-strategie.',
-    voorbeeldTitel: 'Zo werkt het — een voorbeeld',
-    voorbeeldInleiding: 'Elke opdracht kun je ontleden in afzonderlijke stappen. Door dat bewust te doen, kun je per stap bepalen hoe je AI inzet. Bekijk dit voorbeeld — een presentatie maken:',
-    voorbeeldStappen: [
+    intro: 'Elke opdracht kun je ontleden in afzonderlijke stappen. Bekijk dit voorbeeld — een presentatie maken:',
+    stappen: [
       'Onderwerp afbakenen en onderzoeksvraag formuleren',
       'Literatuur en bronnen verzamelen',
       'Argumentatielijn en structuur opzetten',
       'Slides ontwerpen met onderbouwing',
       'Presentatie oefenen en feedback verwerken',
     ],
-    voorbeeldAfsluiting: 'Nu ga je dit zelf doen met je gekozen opdracht.',
-    stap1Titel: 'Ontleed je opdracht in stappen',
+    outro: 'Nu ga je dit zelf doen met een opdracht naar keuze.',
   },
 }
