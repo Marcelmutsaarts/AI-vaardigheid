@@ -57,7 +57,7 @@ Gebaseerd op Mollick & Mollick (2023) "Assigning AI: Seven Approaches for Studen
 ### K-module structuur
 - K1: Drie manieren om AI te gebruiken (twee-fasen flow: drieluik + rollen)
 - K1→K2 transitie: Voorbeeld "presentatie maken" met niveau-afhankelijke stappen
-- K2: Taak-Ontleder — één twee-kolom scherm met twee fases + experimenteren
+- K2: Taak-Ontleder — vier fases: stappen invoeren, aanpak kiezen, inschatten (reflectie), experimenteren
 
 ### K1 Twee-fasen flow
 **Fase 1 (drieluik)**: Drie kaarten: Zelf (✋), Samen met AI (🤝), AI doet het (🤖)
@@ -76,8 +76,8 @@ Gebaseerd op Mollick & Mollick (2023) "Assigning AI: Seven Approaches for Studen
 - Voorbeeld "Een presentatie maken" met niveau-afhankelijke stappen (4 voor VMBO, 5 voor HAVO/VWO)
 - Data: `k2VoorbeeldPerNiveau` in `src/lib/kiezen-content.ts`
 
-### K2 Twee-kolom layout (twee fases)
-Eén scherm met twee fases die de rechterkolom transformeren:
+### K2 Vier fases
+Eén scherm met vier fases:
 
 **Fase 1 — Stappen invoeren** (`phase: 'kiezen'`):
 - Links (40%): opdrachtkaarten met selectie-state (paarse rand + vinkje)
@@ -96,9 +96,18 @@ Eén scherm met twee fases die de rechterkolom transformeren:
 - "Verder →" disabled tot alle stappen een aanpak hebben
 - Niveau-afhankelijke instructietekst (`aanpakInstructie` in k2Teksten)
 
-**Component**: `src/components/k2/ApproachDropdown.tsx`
-- Exporteert `StepApproach` type: `{ type: 'zelf' } | { type: 'roles', roles: [...] }`
-- Backward compat: `Stap` heeft ook `aanpak`/`rol` velden (afgeleid via `deriveBackcompat`)
+**Fase 3 — Inschatten** (`phase: 'resultaat'`):
+- Compact aanpak-overzicht (ApproachOverview) met taaknaam, stappen en paarse pills per stap
+- Drie compacte reflectievragen (ReflectionQuestions): leren, kwaliteit, snelheid — elk met -1/0/+1 keuze
+- Geen AI-gegenereerde proza-samenvatting meer
+- "Verder →" disabled tot alle drie vragen beantwoord zijn
+
+**Componenten**:
+- `src/components/k2/ApproachDropdown.tsx` — multi-select dropdown per stap
+  - Exporteert `StepApproach` type: `{ type: 'zelf' } | { type: 'roles', roles: [...] }`
+  - Backward compat: `Stap` heeft ook `aanpak`/`rol` velden (afgeleid via `deriveBackcompat`)
+- `src/components/k2/ApproachOverview.tsx` — compact overzicht van stappen + gekozen aanpak-pills
+- `src/components/k2/ReflectionQuestions.tsx` — drie inschatvragen (leren/kwaliteit/snelheid)
 - Phase type: `'kiezen' | 'aanpak' | 'resultaat' | 'experimenteren'`
 - Data: `k2Teksten` in `src/lib/kiezen-content.ts`
 
