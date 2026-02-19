@@ -7,7 +7,7 @@ import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, ArrowLeft, ChevronDown, Plus, X, MessageCircle, Send, Loader2, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Plus, X, MessageCircle, Send, Loader2, CheckCircle2 } from 'lucide-react'
 import ApproachDropdown, { StepApproach } from '@/components/k2/ApproachDropdown'
 import { kiesKleuren } from '@/lib/utils'
 import {
@@ -776,21 +776,27 @@ export default function K2Page() {
 
                   {/* Stap-rijen met dropdown */}
                   <div className="space-y-2 mb-4">
-                    {stappen.map((stap, index) => (
-                      <div key={stap.id} className="flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                          {index + 1}
-                        </span>
-                        <span className="flex-1 text-sm text-gray-900">{stap.titel}</span>
-                        <ApproachDropdown
-                          value={stap.approach}
-                          onChange={(val) => handleSelectApproach(stap.id, val)}
-                          isOpen={openDropdown === stap.id}
-                          onToggle={() => setOpenDropdown(openDropdown === stap.id ? null : stap.id)}
-                          onClose={() => setOpenDropdown(null)}
-                        />
-                      </div>
-                    ))}
+                    {(() => {
+                      const firstUnchosenIndex = stappen.findIndex(s => s.approach === null)
+                      return stappen.map((stap, index) => {
+                        const isFirstUnchosen = index === firstUnchosenIndex && openDropdown === null
+                        return (
+                          <div key={stap.id} className="flex items-center gap-2">
+                            <span className={`w-7 h-7 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 ${isFirstUnchosen ? 'animate-pulse' : ''}`}>
+                              {index + 1}
+                            </span>
+                            <span className="flex-1 text-sm text-gray-900">{stap.titel}</span>
+                            <ApproachDropdown
+                              value={stap.approach}
+                              onChange={(val) => handleSelectApproach(stap.id, val)}
+                              isOpen={openDropdown === stap.id}
+                              onToggle={() => setOpenDropdown(openDropdown === stap.id ? null : stap.id)}
+                              onClose={() => setOpenDropdown(null)}
+                            />
+                          </div>
+                        )
+                      })
+                    })()}
                   </div>
 
                   {/* Navigatie onderaan */}
@@ -1023,22 +1029,21 @@ export default function K2Page() {
               <div className="flex-1 space-y-2">
                 {stappen.map((stap) => {
                   const label = getStapLabel(stap)
+                  const truncatedTitel = label.titel.length > 25
+                    ? label.titel.slice(0, 22) + '...'
+                    : label.titel
                   return (
                     <div
                       key={stap.id}
-                      className={`rounded-lg border-2 ${label.kleur} px-3 py-2 transition-all ${isAanpassen ? 'cursor-pointer hover:shadow-md' : ''}`}
-                      onClick={isAanpassen ? () => setOpenDropdown(openDropdown === stap.id ? null : stap.id) : undefined}
+                      className={`rounded-lg border-2 ${label.kleur} px-3 py-2 transition-all`}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-lg">{label.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-gray-900 text-sm truncate">{stap.titel}</div>
-                          <div className="text-xs font-semibold text-gray-500">{label.titel.toUpperCase()}</div>
+                          <div className="text-xs font-semibold text-gray-500">{truncatedTitel.toUpperCase()}</div>
                         </div>
-                        {isAanpassen && <ChevronDown className="h-4 w-4 text-gray-400" />}
-                      </div>
-                      {isAanpassen && (
-                        <div className="mt-2 pt-2 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
+                        {isAanpassen && (
                           <ApproachDropdown
                             value={stap.approach}
                             onChange={(val) => handleSelectApproach(stap.id, val)}
@@ -1046,8 +1051,8 @@ export default function K2Page() {
                             onToggle={() => setOpenDropdown(openDropdown === stap.id ? null : stap.id)}
                             onClose={() => setOpenDropdown(null)}
                           />
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   )
                 })}
