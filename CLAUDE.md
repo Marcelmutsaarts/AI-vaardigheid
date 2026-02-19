@@ -86,15 +86,19 @@ Eén scherm met twee fases die de rechterkolom transformeren:
 
 **Fase 2 — Aanpak kiezen** (`phase: 'aanpak'`):
 - Links (40%): opdrachten locked (opacity-60)
-- Rechts (60%): stap-rijen identiek aan fase 1, met compacte dropdown rechts per stap
+- Rechts (60%): stap-rijen identiek aan fase 1, met compacte multi-select dropdown rechts per stap
 - Dropdown bevat 3 groepen: Zelf doen / Samen met AI (4 rollen) / AI doet het (4 rollen)
-- Keuze toont als paarse pill met emoji + rolnaam
+- **Multi-select**: meerdere rollen per stap mogelijk, ook cross-categorie (bijv. Brainstormer + Schrijver)
+- "Zelf doen" deselecteert alles en sluit dropdown; rolkeuzes houden dropdown open
+- Keuze toont als paarse pill: "✋ Zelf" / emoji+naam (1 rol) / emoji's naast elkaar (2+ rollen, tooltip met namen)
 - Geen aparte legenda meer nodig
 - "← Stappen aanpassen" terug naar fase 1, keuzes worden onthouden
 - "Verder →" disabled tot alle stappen een aanpak hebben
 - Niveau-afhankelijke instructietekst (`aanpakInstructie` in k2Teksten)
 
 **Component**: `src/components/k2/ApproachDropdown.tsx`
+- Exporteert `StepApproach` type: `{ type: 'zelf' } | { type: 'roles', roles: [...] }`
+- Backward compat: `Stap` heeft ook `aanpak`/`rol` velden (afgeleid via `deriveBackcompat`)
 - Phase type: `'kiezen' | 'aanpak' | 'resultaat' | 'experimenteren'`
 - Data: `k2Teksten` in `src/lib/kiezen-content.ts`
 
