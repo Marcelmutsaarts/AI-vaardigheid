@@ -19,6 +19,8 @@ interface K2Stap {
   titel: string
   aanpak: 'zelf' | 'aihelpt' | 'aidoet' | null
   rol?: string
+  // Multi-select approach (new format from K2)
+  approach?: { type: 'zelf' } | { type: 'roles'; roles: Array<{ id: string; category: string; name: string; emoji: string }> } | null
 }
 
 interface K2Data {
@@ -126,6 +128,19 @@ export default function S2Page() {
   }
 
   const getAanpakLabel = (stap: K2Stap) => {
+    // Prefer new multi-select approach field if present
+    if (stap.approach) {
+      if (stap.approach.type === 'zelf') return { label: 'Zelf', color: 'bg-green-100 text-green-700' }
+      if (stap.approach.type === 'roles' && stap.approach.roles.length > 0) {
+        const names = stap.approach.roles.map(r => r.name).join(', ')
+        const hasAiHelpt = stap.approach.roles.some(r => r.category === 'aihelpt')
+        const hasAiDoet = stap.approach.roles.some(r => r.category === 'aidoet')
+        if (hasAiHelpt && hasAiDoet) return { label: `AI (${names})`, color: 'bg-indigo-100 text-indigo-700' }
+        if (hasAiDoet) return { label: `AI doet (${names})`, color: 'bg-purple-100 text-purple-700' }
+        return { label: `AI helpt (${names})`, color: 'bg-blue-100 text-blue-700' }
+      }
+    }
+    // Fallback to old aanpak/rol fields
     if (!stap.aanpak) return { label: '?', color: 'bg-gray-100' }
     if (stap.aanpak === 'zelf') return { label: 'Zelf', color: 'bg-green-100 text-green-700' }
     if (stap.aanpak === 'aihelpt') return { label: `AI helpt${stap.rol ? ` (${stap.rol})` : ''}`, color: 'bg-blue-100 text-blue-700' }

@@ -306,7 +306,7 @@ export default function K2Page() {
           titel: trimmed,
           approach: existing?.approach ?? null,
           // Backward compat
-          aanpak: existing?.aanpak ?? null as Aanpak | null,
+          aanpak: (existing?.aanpak ?? null) as Aanpak | null,
           rol: existing?.rol,
         }
       })
@@ -325,6 +325,7 @@ export default function K2Page() {
   const deriveBackcompat = (approach: StepApproach | null): { aanpak: Aanpak | null; rol?: string } => {
     if (!approach) return { aanpak: null, rol: undefined }
     if (approach.type === 'zelf') return { aanpak: 'zelf', rol: undefined }
+    if (approach.roles.length === 0) return { aanpak: null, rol: undefined }
     // For multi-role, use the first role's category for backward compat
     const firstRole = approach.roles[0]
     return { aanpak: firstRole.category as Aanpak, rol: firstRole.id }
