@@ -8,7 +8,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, ChevronDown, Plus, X, MessageCircle, Send, Loader2, CheckCircle2 } from 'lucide-react'
-import StepApproachChips from '@/components/k2/StepApproachChips'
+import ApproachDropdown from '@/components/k2/ApproachDropdown'
 import { kiesKleuren } from '@/lib/utils'
 import {
   getOpdrachtenVoorNiveau,
@@ -297,12 +297,6 @@ export default function K2Page() {
       s.id === stapId ? { ...s, aanpak, rol } : s
     ))
     setOpenDropdown(null)
-  }
-
-  const handleResetAanpak = (stapId: string) => {
-    setStappen(prev => prev.map(s =>
-      s.id === stapId ? { ...s, aanpak: null, rol: undefined } : s
-    ))
   }
 
   const handleFinish = () => {
@@ -704,7 +698,7 @@ export default function K2Page() {
 
             {/* Twee-kolom layout */}
             <div className="flex flex-col md:flex-row gap-5">
-              {/* Linkerkolom — Locked opdrachten + legenda */}
+              {/* Linkerkolom — Locked opdrachten */}
               <div className="w-full md:w-[40%] flex-shrink-0">
                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Kies een opdracht</h2>
                 <div className="space-y-2 opacity-60 pointer-events-none">
@@ -737,37 +731,9 @@ export default function K2Page() {
                     )
                   })}
                 </div>
-
-                {/* Legenda */}
-                <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Aanpak kiezen</h3>
-                  <div className="space-y-2.5">
-                    <div className="flex items-start gap-2">
-                      <span className="text-base leading-5">✋</span>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">Zelf</div>
-                        <div className="text-xs text-gray-500">Zonder AI</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-base leading-5">🤝</span>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">Samen</div>
-                        <div className="text-xs text-gray-500">AI helpt mij denken</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-base leading-5">🤖</span>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">AI doet</div>
-                        <div className="text-xs text-gray-500">AI maakt, ik check</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {/* Rechterkolom — Stap-kaarten met aanpak-chips */}
+              {/* Rechterkolom — Stappen met dropdown */}
               <div className="w-full md:w-[60%]">
                 <div className="animate-in fade-in duration-300">
                   {/* Opdrachtkaart met aangepaste instructie */}
@@ -776,22 +742,22 @@ export default function K2Page() {
                     <p className="text-gray-600 text-sm">{teksten.aanpakInstructie}</p>
                   </div>
 
-                  {/* Stap-kaarten met chips */}
-                  <div className="space-y-3 mb-4">
+                  {/* Stap-rijen met dropdown */}
+                  <div className="space-y-2 mb-4">
                     {stappen.map((stap, index) => (
-                      <StepApproachChips
-                        key={stap.id}
-                        stepNumber={index + 1}
-                        stepTitle={stap.titel}
-                        aanpak={stap.aanpak}
-                        rol={stap.rol}
-                        openDropdownId={openDropdown}
-                        stepId={stap.id}
-                        onSelect={(aanpak, rol) => handleSelectAanpak(stap.id, aanpak, rol)}
-                        onReset={() => handleResetAanpak(stap.id)}
-                        onOpenDropdown={setOpenDropdown}
-                        onCloseDropdown={() => setOpenDropdown(null)}
-                      />
+                      <div key={stap.id} className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                          {index + 1}
+                        </span>
+                        <span className="flex-1 text-sm text-gray-900">{stap.titel}</span>
+                        <ApproachDropdown
+                          value={stap.aanpak ? { category: stap.aanpak, role: stap.rol } : null}
+                          onChange={(val) => handleSelectAanpak(stap.id, val.category, val.role)}
+                          isOpen={openDropdown === stap.id}
+                          onToggle={() => setOpenDropdown(openDropdown === stap.id ? null : stap.id)}
+                          onClose={() => setOpenDropdown(null)}
+                        />
+                      </div>
                     ))}
                   </div>
 
