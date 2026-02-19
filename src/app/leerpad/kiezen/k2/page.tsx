@@ -32,17 +32,20 @@ interface ChatMessage {
   content: string
 }
 
-type Phase = 'kiezen' | 'onderdelen' | 'aanpak' | 'resultaat' | 'experimenteren'
+type Phase = 'kiezen' | 'aanpak' | 'resultaat' | 'experimenteren'
 
 const STORAGE_KEY = 'kies-k2-state'
+const DEFAULT_VELDEN = 5
+const MAX_VELDEN = 8
 
 interface K2State {
   phase: Phase
   gekozenOpdracht: OpdrachtOptie | null
+  stapVelden: string[]
   stappen: Stap[]
-  totaalLeren: number | null // -1 = minder, 0 = gelijk, 1 = meer (t.o.v. alles zelf)
-  totaalKwaliteit: number | null // -1 = lager, 0 = gelijk, 1 = hoger (t.o.v. alles zelf)
-  totaalSnelheid: number | null // -1 = langzamer, 0 = gelijk, 1 = sneller (t.o.v. alles zelf)
+  totaalLeren: number | null
+  totaalKwaliteit: number | null
+  totaalSnelheid: number | null
 }
 
 export default function K2Page() {
@@ -50,13 +53,18 @@ export default function K2Page() {
   const { niveau, updateProgress } = useNiveau()
   const [phase, setPhase] = useState<Phase>('kiezen')
   const [gekozenOpdracht, setGekozenOpdracht] = useState<OpdrachtOptie | null>(null)
+  const [stapVelden, setStapVelden] = useState<string[]>(Array(DEFAULT_VELDEN).fill(''))
   const [stappen, setStappen] = useState<Stap[]>([])
   const [totaalLeren, setTotaalLeren] = useState<number | null>(null)
   const [totaalKwaliteit, setTotaalKwaliteit] = useState<number | null>(null)
   const [totaalSnelheid, setTotaalSnelheid] = useState<number | null>(null)
-  const [nieuweStap, setNieuweStap] = useState('')
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+
+  // Two-column specific state
+  const [pendingOpdracht, setPendingOpdracht] = useState<OpdrachtOptie | null>(null)
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const rightColumnRef = useRef<HTMLDivElement>(null)
 
   // Chat state
   const [chatOpen, setChatOpen] = useState(false)
@@ -80,9 +88,19 @@ export default function K2Page() {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try {
-        const state: K2State = JSON.parse(saved)
-        if (state.phase) setPhase(state.phase)
+        const state = JSON.parse(saved)
+        // Backward compat: 'onderdelen' phase maps to 'kiezen'
+        const loadedPhase = state.phase === 'onderdelen' ? 'kiezen' : state.phase
+        if (loadedPhase) setPhase(loadedPhase as Phase)
         if (state.gekozenOpdracht) setGekozenOpdracht(state.gekozenOpdracht)
+        if (state.stapVelden?.length) {
+          setStapVelden(state.stapVelden)
+        } else if (state.stappen?.length && (loadedPhase === 'kiezen')) {
+          // Migrate old stappen to stapVelden
+          const velden = state.stappen.map((s: Stap) => s.titel)
+          while (velden.length < DEFAULT_VELDEN) velden.push('')
+          setStapVelden(velden)
+        }
         if (state.stappen) setStappen(state.stappen)
         if (state.totaalLeren !== undefined) setTotaalLeren(state.totaalLeren)
         if (state.totaalKwaliteit !== undefined) setTotaalKwaliteit(state.totaalKwaliteit)
@@ -97,13 +115,12 @@ export default function K2Page() {
   // Save state to localStorage when it changes
   useEffect(() => {
     if (isLoaded) {
-      const state: K2State = { phase, gekozenOpdracht, stappen, totaalLeren, totaalKwaliteit, totaalSnelheid }
+      const state: K2State = { phase, gekozenOpdracht, stapVelden, stappen, totaalLeren, totaalKwaliteit, totaalSnelheid }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     }
-  }, [phase, gekozenOpdracht, stappen, totaalLeren, totaalKwaliteit, totaalSnelheid, isLoaded])
+  }, [phase, gekozenOpdracht, stapVelden, stappen, totaalLeren, totaalKwaliteit, totaalSnelheid, isLoaded])
 
   useEffect(() => {
-    // MBO/HBO hebben geen leerjaar, VO niveaus wel
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
@@ -124,8 +141,6 @@ export default function K2Page() {
 
   const generateStrategieSamenvatting = async () => {
     setSamenvattingLoading(true)
-
-    // Bouw de stappen beschrijving
     const stappenBeschrijving = stappen.map(stap => {
       let aanpakTekst = ''
       if (stap.aanpak === 'zelf') {
@@ -150,24 +165,12 @@ export default function K2Page() {
             niveau: niveau.schoolType,
             leerjaar: niveau.leerjaar,
             currentModule: 'kiezen',
-            moduleContext: `Je bent een coach die een leerling helpt reflecteren op hun AI-strategie.
-
-Opdracht: ${gekozenOpdracht?.titel}
-
-Gekozen aanpak per stap:
-${stappenBeschrijving}
-
-Schrijf in 2-3 korte, directe zinnen wat deze strategie inhoudt.
-Gebruik "je" en spreek de leerling aan.
-Wees neutraal - geen oordeel over goed of fout.
-Focus op WAT de leerling gaat doen, niet of het slim is.
-Houd het heel kort en concreet.`,
+            moduleContext: `Je bent een coach die een leerling helpt reflecteren op hun AI-strategie.\n\nOpdracht: ${gekozenOpdracht?.titel}\n\nGekozen aanpak per stap:\n${stappenBeschrijving}\n\nSchrijf in 2-3 korte, directe zinnen wat deze strategie inhoudt.\nGebruik "je" en spreek de leerling aan.\nWees neutraal - geen oordeel over goed of fout.\nFocus op WAT de leerling gaat doen, niet of het slim is.\nHoud het heel kort en concreet.`,
             aiMode: 'doet',
             conversationHistory: []
           }
         })
       })
-
       if (response.ok) {
         const data = await response.json()
         setStrategieSamenvatting(data.reply)
@@ -187,7 +190,6 @@ Houd het heel kort en concreet.`,
     return null
   }
 
-  // Don't render until localStorage is loaded
   if (!isLoaded) {
     return null
   }
@@ -196,59 +198,97 @@ Houd het heel kort en concreet.`,
   const niveauGroep = getNiveauGroep(niveau.schoolType)
   const teksten = k2Teksten[niveauGroep]
 
-  // Handlers
+  // Count filled fields
+  const gevuldeVelden = stapVelden.filter(v => v.trim()).length
+  const hasStappenIngevuld = gevuldeVelden > 0
+
+  // ===== HANDLERS =====
+
   const handleKiesOpdracht = (opdracht: OpdrachtOptie) => {
+    // If fields have content and switching opdracht, ask confirmation
+    if (hasStappenIngevuld && gekozenOpdracht && gekozenOpdracht.id !== opdracht.id) {
+      setPendingOpdracht(opdracht)
+      return
+    }
+    selectOpdracht(opdracht)
+  }
+
+  const selectOpdracht = (opdracht: OpdrachtOptie) => {
     setGekozenOpdracht(opdracht)
-    setPhase('onderdelen')
-    // Reset chat met intro bericht
+    if (!hasStappenIngevuld) {
+      setStapVelden(Array(DEFAULT_VELDEN).fill(''))
+    }
     setChatMessages([{
       role: 'assistant',
       content: `Je hebt gekozen voor "${opdracht.titel}". Welke stappen denk je dat je moet zetten om dit te maken? Typ je ideeën, of vraag mij om suggesties!`
     }])
+    // Auto-scroll and focus on mobile
+    setTimeout(() => {
+      if (window.innerWidth < 768) {
+        rightColumnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+      inputRefs.current[0]?.focus()
+    }, 100)
   }
 
-  const handleVoegStapToe = () => {
-    if (nieuweStap.trim()) {
-      setStappen(prev => [...prev, {
-        id: `stap-${Date.now()}`,
-        titel: nieuweStap.trim(),
-        aanpak: null
-      }])
-      setNieuweStap('')
+  const handleConfirmWissel = () => {
+    if (pendingOpdracht) {
+      setStapVelden(Array(DEFAULT_VELDEN).fill(''))
+      selectOpdracht(pendingOpdracht)
+      setPendingOpdracht(null)
     }
   }
 
-  const handleVerwijderStap = (id: string) => {
-    setStappen(prev => prev.filter(s => s.id !== id))
+  const handleCancelWissel = () => {
+    setPendingOpdracht(null)
   }
 
-  // Haal alle AI-helpt rollen op die al gekozen zijn voor stappen met dezelfde titel
-  const getGekozenAiHelptRollen = (stapTitel: string): string[] => {
-    return stappen
-      .filter(s => s.titel === stapTitel && s.aanpak === 'aihelpt' && s.rol)
-      .map(s => s.rol!)
+  const handleStapVeldChange = (index: number, value: string) => {
+    setStapVelden(prev => {
+      const next = [...prev]
+      next[index] = value
+      return next
+    })
   }
 
-  // Voeg extra AI-helpt rol toe voor dezelfde stap (dupliceert de stap)
-  const handleVoegExtraRolToe = (stapId: string, rolId: string) => {
-    const huidigeStap = stappen.find(s => s.id === stapId)
-    if (!huidigeStap) return
-
-    const nieuweStap: Stap = {
-      id: `${stapId}-${Date.now()}`,
-      titel: huidigeStap.titel,
-      aanpak: 'aihelpt',
-      rol: rolId
+  const handleStapKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (index < stapVelden.length - 1) {
+        inputRefs.current[index + 1]?.focus()
+      } else if (stapVelden.length < MAX_VELDEN) {
+        handleVoegVeldToe()
+        setTimeout(() => inputRefs.current[stapVelden.length]?.focus(), 50)
+      }
     }
+  }
 
-    // Voeg toe direct na de huidige stap
-    const index = stappen.findIndex(s => s.id === stapId)
-    setStappen(prev => [
-      ...prev.slice(0, index + 1),
-      nieuweStap,
-      ...prev.slice(index + 1)
-    ])
-    setOpenDropdown(null)
+  const handleVoegVeldToe = () => {
+    if (stapVelden.length < MAX_VELDEN) {
+      setStapVelden(prev => [...prev, ''])
+      setTimeout(() => inputRefs.current[stapVelden.length]?.focus(), 50)
+    }
+  }
+
+  const handleVerder = () => {
+    // Convert non-empty velden to Stap objects
+    const nieuweStappen = stapVelden
+      .filter(v => v.trim())
+      .map((titel, i) => ({
+        id: `stap-${Date.now()}-${i}`,
+        titel: titel.trim(),
+        aanpak: null as Aanpak | null,
+      }))
+    setStappen(nieuweStappen)
+    setPhase('aanpak')
+  }
+
+  const handleBackToKiezen = () => {
+    // Restore stapVelden from stappen
+    const velden = stappen.map(s => s.titel)
+    while (velden.length < DEFAULT_VELDEN) velden.push('')
+    setStapVelden(velden)
+    setPhase('kiezen')
   }
 
   const handleSelectAanpak = (stapId: string, aanpak: Aanpak, rol?: string) => {
@@ -263,11 +303,10 @@ Houd het heel kort en concreet.`,
     setWilVerbeteren(false)
     setVerbeterOptie(null)
     setIsAanpassen(false)
-    setPhase('experimenteren') // Ga naar experimenteer-modus
+    setPhase('experimenteren')
   }
 
   const handleBackToDashboard = () => {
-    // Data blijft bewaard zodat S2 het kan gebruiken
     router.push('/leerpad/kiezen/k-complete')
   }
 
@@ -275,6 +314,7 @@ Houd het heel kort en concreet.`,
     localStorage.removeItem(STORAGE_KEY)
     setPhase('kiezen')
     setGekozenOpdracht(null)
+    setStapVelden(Array(DEFAULT_VELDEN).fill(''))
     setStappen([])
     setTotaalLeren(null)
     setTotaalKwaliteit(null)
@@ -289,16 +329,15 @@ Houd het heel kort en concreet.`,
   // Chat handler met streaming
   const handleSendChat = async () => {
     if (!chatInput.trim() || chatLoading) return
-
     const userMessage = chatInput.trim()
     setChatInput('')
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setChatLoading(true)
     setChatStreamingContent('')
 
-    // Bouw context met bestaande stappen
-    const bestaandeStappen = stappen.length > 0
-      ? `\n\nAl ingevoerde stappen:\n${stappen.map((s, i) => `${i + 1}. ${s.titel}`).join('\n')}`
+    const ingevuldeStappen = stapVelden.filter(v => v.trim())
+    const bestaandeStappen = ingevuldeStappen.length > 0
+      ? `\n\nAl ingevoerde stappen:\n${ingevuldeStappen.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
       : ''
 
     try {
@@ -311,34 +350,24 @@ Houd het heel kort en concreet.`,
             niveau: niveau.schoolType,
             leerjaar: niveau.leerjaar,
             currentModule: 'kiezen',
-            moduleContext: `Opdracht: ${gekozenOpdracht?.titel}.${bestaandeStappen}
-
-De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stappen die nog missen. Geef maximaal 3-4 concrete suggesties per keer zoals "Onderwerp kiezen", "Informatie verzamelen", "Structuur maken". Houd het kort en praktisch. Als er al stappen zijn, bouw daarop voort.`,
+            moduleContext: `Opdracht: ${gekozenOpdracht?.titel}.${bestaandeStappen}\n\nDe leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stappen die nog missen. Geef maximaal 3-4 concrete suggesties per keer zoals "Onderwerp kiezen", "Informatie verzamelen", "Structuur maken". Houd het kort en praktisch. Als er al stappen zijn, bouw daarop voort.`,
             aiMode: 'helpt',
             conversationHistory: chatMessages
           }
         })
       })
-
-      if (!response.ok) {
-        throw new Error('API error')
-      }
-
+      if (!response.ok) throw new Error('API error')
       const reader = response.body?.getReader()
       if (!reader) throw new Error('No reader')
-
       const decoder = new TextDecoder()
       let fullContent = ''
       let buffer = ''
-
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n\n')
         buffer = lines.pop() || ''
-
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
@@ -347,21 +376,15 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                 fullContent += data.content
                 setChatStreamingContent(fullContent)
               }
-            } catch {
-              // Skip invalid JSON
-            }
+            } catch { /* skip invalid JSON */ }
           }
         }
       }
-
       if (fullContent) {
         setChatMessages(prev => [...prev, { role: 'assistant', content: fullContent }])
       }
     } catch {
-      setChatMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, er ging iets mis. Probeer het opnieuw.'
-      }])
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, er ging iets mis. Probeer het opnieuw.' }])
     } finally {
       setChatLoading(false)
       setChatStreamingContent('')
@@ -373,215 +396,229 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
   const totaalIngevuld = totaalLeren !== null && totaalKwaliteit !== null && totaalSnelheid !== null
 
   const getRolInfo = (aanpak: Aanpak, rolId?: string) => {
-    if (aanpak === 'aihelpt' && rolId) {
-      return aiHelptRollen.find(r => r.id === rolId)
-    }
-    if (aanpak === 'aidoet' && rolId) {
-      return aiDoetRollen.find(r => r.id === rolId)
-    }
+    if (aanpak === 'aihelpt' && rolId) return aiHelptRollen.find(r => r.id === rolId)
+    if (aanpak === 'aidoet' && rolId) return aiDoetRollen.find(r => r.id === rolId)
     return null
   }
 
-  // Bereken AI-balans percentage (0 = volledig zelf, 100 = volledig AI)
-  const berekenAIBalans = () => {
-    if (stappen.length === 0) return 0
-    let totaal = 0
-    stappen.forEach(stap => {
-      if (stap.aanpak === 'zelf') totaal += 0
-      else if (stap.aanpak === 'aihelpt') totaal += 50
-      else if (stap.aanpak === 'aidoet') totaal += 100
-    })
-    return Math.round(totaal / stappen.length)
+  const getGekozenAiHelptRollen = (stapTitel: string): string[] => {
+    return stappen.filter(s => s.titel === stapTitel && s.aanpak === 'aihelpt' && s.rol).map(s => s.rol!)
   }
 
-  const aiBalans = berekenAIBalans()
-
-  // Tel aanpakken per type
-  const aanpakTelling = {
-    zelf: stappen.filter(s => s.aanpak === 'zelf').length,
-    aihelpt: stappen.filter(s => s.aanpak === 'aihelpt').length,
-    aidoet: stappen.filter(s => s.aanpak === 'aidoet').length
+  const handleVoegExtraRolToe = (stapId: string, rolId: string) => {
+    const huidigeStap = stappen.find(s => s.id === stapId)
+    if (!huidigeStap) return
+    const nieuw: Stap = { id: `${stapId}-${Date.now()}`, titel: huidigeStap.titel, aanpak: 'aihelpt', rol: rolId }
+    const index = stappen.findIndex(s => s.id === stapId)
+    setStappen(prev => [...prev.slice(0, index + 1), nieuw, ...prev.slice(index + 1)])
+    setOpenDropdown(null)
   }
 
-  
-  // ============ FASE 1: OPDRACHT KIEZEN ============
+  // ============ FASE 1: TWEE-KOLOM LAYOUT ============
   if (phase === 'kiezen') {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
         <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
-        <main className="flex-1 py-8">
-          <div className="container mx-auto px-4 max-w-2xl">
+        <main className="flex-1 py-6">
+          <div className="container mx-auto px-4 max-w-5xl">
             <Link
               href="/leerpad/kiezen/k1"
-              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
+              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Drie manieren
             </Link>
 
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: kiesKleuren.kiezen }}
-                >
-                  K2
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">Taak-Ontleder</h1>
-              </div>
-              <p className="text-gray-600">
-                {teksten.introTekst}
-              </p>
-            </div>
-
-            {/* Uitleg */}
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
-              <p className="text-sm text-gray-700">
-                <strong>Hoe werkt het?</strong> {teksten.hoeWerktHet}
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {opdrachten.map(opdracht => (
-                <button
-                  key={opdracht.id}
-                  onClick={() => handleKiesOpdracht(opdracht)}
-                  className="w-full bg-white rounded-xl border shadow-sm hover:shadow-md transition-all p-4 flex items-center gap-4 text-left"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl flex-shrink-0">
-                    {opdracht.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900">{opdracht.titel}</h3>
-                    <p className="text-sm text-gray-500">{opdracht.beschrijving}</p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    )
-  }
-
-  // ============ FASE 2: ONDERDELEN BEPALEN ============
-  if (phase === 'onderdelen') {
-    return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <Header />
-        <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
-        <main className="flex-1 py-8">
-          <div className="container mx-auto px-4 max-w-2xl">
-            <button
-              onClick={() => setPhase('kiezen')}
-              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Andere opdracht
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-5">
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
                 style={{ backgroundColor: kiesKleuren.kiezen }}
               >
                 K2
               </div>
-              <h1 className="text-xl font-bold text-gray-900">{teksten.stap1Titel}</h1>
+              <h1 className="text-xl font-bold text-gray-900">Taak-Ontleder</h1>
             </div>
 
-            {/* Opdracht + instructie kaart */}
-            <div className="bg-purple-50 rounded-xl p-5 mb-3">
-              <h2 className="text-xl font-bold text-gray-900 mb-2">{gekozenOpdracht?.titel}</h2>
-              <p className="text-gray-600">
-                {teksten.opdelenInstructie}
-              </p>
-            </div>
-
-            {/* Stappen invoer */}
-            <div className="bg-white rounded-xl border shadow-sm p-4 mb-4">
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  value={nieuweStap}
-                  onChange={(e) => setNieuweStap(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleVoegStapToe()}
-                  placeholder="Typ een stap..."
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-                <Button onClick={handleVoegStapToe} size="sm" disabled={!nieuweStap.trim()}>
-                  <Plus className="h-4 w-4" />
-                </Button>
+            {/* Twee-kolom layout */}
+            <div className="flex flex-col md:flex-row gap-5">
+              {/* Linkerkolom — Opdrachtskeuze */}
+              <div className="w-full md:w-[40%] flex-shrink-0">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Kies een opdracht</h2>
+                <div className="space-y-2">
+                  {opdrachten.map(opdracht => {
+                    const isSelected = gekozenOpdracht?.id === opdracht.id
+                    return (
+                      <button
+                        key={opdracht.id}
+                        onClick={() => handleKiesOpdracht(opdracht)}
+                        className={`w-full rounded-xl border-2 transition-all p-3 flex items-center gap-3 text-left ${
+                          isSelected
+                            ? 'border-purple-400 bg-purple-50 shadow-sm'
+                            : 'border-transparent bg-white shadow-sm hover:shadow-md hover:border-gray-200'
+                        }`}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-xl flex-shrink-0">
+                          {opdracht.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-sm">{opdracht.titel}</h3>
+                          <p className="text-xs text-gray-500 truncate">{opdracht.beschrijving}</p>
+                        </div>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
-              {stappen.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">
-                  Nog geen stappen toegevoegd
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {stappen.map((stap, index) => (
-                    <div
-                      key={stap.id}
-                      className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg"
-                    >
-                      <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                        {index + 1}
-                      </span>
-                      <span className="flex-1 text-sm text-gray-700">{stap.titel}</span>
-                      <button
-                        onClick={() => handleVerwijderStap(stap.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+              {/* Rechterkolom — Stappen invullen */}
+              <div ref={rightColumnRef} className="w-full md:w-[60%] relative">
+                {!gekozenOpdracht ? (
+                  // Disabled state
+                  <div className="opacity-40 pointer-events-none select-none">
+                    <div className="bg-gray-100 rounded-xl p-5 mb-3">
+                      <div className="h-6 w-48 bg-gray-200 rounded mb-2" />
+                      <div className="h-4 w-64 bg-gray-200 rounded" />
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="space-y-2">
+                      {[1, 2].map(i => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-full bg-gray-200 flex-shrink-0" />
+                          <div className="flex-1 h-10 bg-gray-100 border border-gray-200 rounded-lg" />
+                        </div>
+                      ))}
+                      {[3, 4, 5].map(i => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-full bg-gray-100 flex-shrink-0" />
+                          <div className="flex-1 h-10 bg-gray-50 border border-dashed border-gray-200 rounded-lg" />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-center text-gray-400 mt-6 text-sm">Kies eerst een opdracht</p>
+                  </div>
+                ) : (
+                  // Active state
+                  <div className="animate-in fade-in duration-300">
+                    {/* Opdrachtkaart */}
+                    <div className="bg-purple-50 rounded-xl p-5 mb-3">
+                      <h2 className="text-xl font-bold text-gray-900 mb-1">{gekozenOpdracht.titel}</h2>
+                      <p className="text-gray-600 text-sm">{teksten.opdelenInstructie}</p>
+                    </div>
 
-            {/* Hulp knop */}
-            <button
-              onClick={() => {
-                // Update chat met huidige stappen
-                const stappenInfo = stappen.length > 0
-                  ? `\n\nJe hebt al deze stappen:\n${stappen.map((s, i) => `${i + 1}. ${s.titel}`).join('\n')}\n\nWil je meer stappen toevoegen of heb je andere vragen?`
-                  : ''
-                setChatMessages([{
-                  role: 'assistant',
-                  content: `Je werkt aan "${gekozenOpdracht?.titel}".${stappenInfo || ' Welke stappen denk je dat je moet zetten? Typ je ideeën, of vraag mij om suggesties!'}`
-                }])
-                setChatOpen(true)
-              }}
-              className="w-full bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-center gap-3 transition-colors mb-6"
-            >
-              <MessageCircle className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium text-primary">Hulp nodig? Vraag de AI om suggesties</span>
-            </button>
+                    {/* Invulvelden */}
+                    <div className="space-y-2 mb-3">
+                      {stapVelden.map((waarde, index) => {
+                        const isBasis = index < 2
+                        return (
+                          <div key={index} className="flex items-center gap-2">
+                            <span
+                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                isBasis
+                                  ? 'bg-purple-500 text-white'
+                                  : 'bg-purple-200 text-purple-600'
+                              }`}
+                            >
+                              {index + 1}
+                            </span>
+                            <input
+                              ref={el => { inputRefs.current[index] = el }}
+                              type="text"
+                              value={waarde}
+                              onChange={(e) => handleStapVeldChange(index, e.target.value)}
+                              onKeyDown={(e) => handleStapKeyDown(index, e)}
+                              placeholder={`Stap ${index + 1}...`}
+                              className={`flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
+                                isBasis
+                                  ? 'border border-gray-300 bg-white'
+                                  : 'border border-dashed border-gray-200 bg-white'
+                              }`}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
 
-            <div>
-              <Button
-                onClick={() => setPhase('aanpak')}
-                disabled={stappen.length < 2}
-                size="lg"
-                className="w-full"
-              >
-                Verder
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              {stappen.length < 2 && (
-                <p className="text-sm text-gray-400 text-center mt-2">
-                  Voeg minstens 2 stappen toe om verder te gaan
-                </p>
-              )}
+                    {/* Nog een stap */}
+                    {stapVelden.length < MAX_VELDEN && (
+                      <button
+                        onClick={handleVoegVeldToe}
+                        className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 mb-4"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Nog een stap
+                      </button>
+                    )}
+
+                    {/* Hulp nodig */}
+                    <button
+                      onClick={() => {
+                        const ingevuld = stapVelden.filter(v => v.trim())
+                        const stappenInfo = ingevuld.length > 0
+                          ? `\n\nJe hebt al deze stappen:\n${ingevuld.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nWil je meer stappen toevoegen of heb je andere vragen?`
+                          : ''
+                        setChatMessages([{
+                          role: 'assistant',
+                          content: `Je werkt aan "${gekozenOpdracht?.titel}".${stappenInfo || ' Welke stappen denk je dat je moet zetten? Typ je ideeën, of vraag mij om suggesties!'}`
+                        }])
+                        setChatOpen(true)
+                      }}
+                      className="w-full bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center gap-3 transition-colors mb-4"
+                    >
+                      <MessageCircle className="h-5 w-5 text-primary" />
+                      <span className="text-sm font-medium text-primary">Hulp nodig? Vraag de AI om suggesties</span>
+                    </button>
+
+                    {/* Verder knop */}
+                    <div>
+                      <Button
+                        onClick={handleVerder}
+                        disabled={gevuldeVelden < 2}
+                        size="lg"
+                        className="w-full"
+                      >
+                        Verder
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </Button>
+                      {gevuldeVelden < 2 && (
+                        <p className="text-sm text-gray-400 text-center mt-2">
+                          Vul minstens 2 stappen in
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </main>
         <Footer />
+
+        {/* Bevestigingsdialoog opdracht wisselen */}
+        {pendingOpdracht && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+              <h3 className="font-semibold text-gray-900 mb-2">Andere opdracht kiezen?</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Je hebt al stappen ingevuld. Als je een andere opdracht kiest, worden deze gewist.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleCancelWissel} className="flex-1">
+                  Annuleren
+                </Button>
+                <Button onClick={handleConfirmWissel} className="flex-1">
+                  Doorgaan
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Chat Panel */}
         {chatOpen && (
@@ -593,20 +630,12 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                   <X className="h-5 w-5" />
                 </button>
               </div>
-
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {chatMessages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-white'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
+                      msg.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
+                    }`}>
                       {msg.content}
                     </div>
                   </div>
@@ -627,7 +656,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                 )}
                 <div ref={chatEndRef} />
               </div>
-
               <div className="p-4 border-t">
                 <div className="flex gap-2">
                   <input
@@ -654,7 +682,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     )
   }
 
-  // ============ FASE 3: AANPAK KIEZEN ============
+  // ============ FASE 2: AANPAK KIEZEN ============
   if (phase === 'aanpak') {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -663,7 +691,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-2xl">
             <button
-              onClick={() => setPhase('onderdelen')}
+              onClick={handleBackToKiezen}
               className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
@@ -793,9 +821,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                     (() => {
                       const gekozenRollen = getGekozenAiHelptRollen(stap.titel)
                       const beschikbareRollen = aiHelptRollen.filter(r => !gekozenRollen.includes(r.id))
-
                       if (beschikbareRollen.length === 0) return null
-
                       return (
                         <div className="ml-9 mt-2 relative">
                           <button
@@ -849,7 +875,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     )
   }
 
-  // ============ FASE 4: REFLECTIE ============
+  // ============ FASE 3: REFLECTIE ============
   if (phase === 'resultaat') {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -872,14 +898,12 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
               </p>
             </div>
 
-            {/* Uitleg */}
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700">
                 Denk na over je gekozen aanpak. Wat betekent dit voor hoeveel je leert, de kwaliteit van het resultaat en hoe snel je klaar bent?
               </p>
             </div>
 
-            {/* AI Samenvatting */}
             <div className="bg-white rounded-xl border shadow-sm p-5 mb-6">
               {samenvattingLoading ? (
                 <div className="flex items-center gap-3 text-gray-500">
@@ -891,124 +915,63 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
               )}
             </div>
 
-            {/* Reflectievragen */}
             <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
               <h3 className="font-medium text-gray-900 mb-4">Wat denk jij?</h3>
 
-              {/* Vraag 1: Leren */}
               <div className="mb-6">
                 <p className="text-sm text-gray-700 mb-3">
                   Wat doet deze aanpak met je <strong>leren</strong>, vergeleken met alles zelf doen?
                 </p>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setTotaalLeren(-1)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalLeren === -1
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
-                    }`}
-                  >
-                    Minder
-                  </button>
-                  <button
-                    onClick={() => setTotaalLeren(0)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalLeren === 0
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
-                    }`}
-                  >
-                    Evenveel
-                  </button>
-                  <button
-                    onClick={() => setTotaalLeren(1)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalLeren === 1
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
-                    }`}
-                  >
-                    Meer
-                  </button>
+                  {[{ val: -1, label: 'Minder' }, { val: 0, label: 'Evenveel' }, { val: 1, label: 'Meer' }].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => setTotaalLeren(opt.val)}
+                      className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
+                        totaalLeren === opt.val ? 'bg-primary text-white border-primary' : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Vraag 2: Kwaliteit */}
               <div className="mb-6">
                 <p className="text-sm text-gray-700 mb-3">
                   Wat doet deze aanpak met de <strong>kwaliteit</strong> van het eindresultaat?
                 </p>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setTotaalKwaliteit(-1)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalKwaliteit === -1
-                        ? 'bg-amber-500 text-white border-amber-500'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'
-                    }`}
-                  >
-                    Lager
-                  </button>
-                  <button
-                    onClick={() => setTotaalKwaliteit(0)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalKwaliteit === 0
-                        ? 'bg-amber-500 text-white border-amber-500'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'
-                    }`}
-                  >
-                    Hetzelfde
-                  </button>
-                  <button
-                    onClick={() => setTotaalKwaliteit(1)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalKwaliteit === 1
-                        ? 'bg-amber-500 text-white border-amber-500'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'
-                    }`}
-                  >
-                    Hoger
-                  </button>
+                  {[{ val: -1, label: 'Lager' }, { val: 0, label: 'Hetzelfde' }, { val: 1, label: 'Hoger' }].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => setTotaalKwaliteit(opt.val)}
+                      className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
+                        totaalKwaliteit === opt.val ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Vraag 3: Snelheid */}
               <div>
                 <p className="text-sm text-gray-700 mb-3">
                   Wat doet deze aanpak met de <strong>snelheid</strong> waarmee je klaar bent?
                 </p>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setTotaalSnelheid(-1)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalSnelheid === -1
-                        ? 'bg-blue-500 text-white border-blue-500'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                    }`}
-                  >
-                    Langzamer
-                  </button>
-                  <button
-                    onClick={() => setTotaalSnelheid(0)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalSnelheid === 0
-                        ? 'bg-blue-500 text-white border-blue-500'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                    }`}
-                  >
-                    Hetzelfde
-                  </button>
-                  <button
-                    onClick={() => setTotaalSnelheid(1)}
-                    className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                      totaalSnelheid === 1
-                        ? 'bg-blue-500 text-white border-blue-500'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                    }`}
-                  >
-                    Sneller
-                  </button>
+                  {[{ val: -1, label: 'Langzamer' }, { val: 0, label: 'Hetzelfde' }, { val: 1, label: 'Sneller' }].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => setTotaalSnelheid(opt.val)}
+                      className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
+                        totaalSnelheid === opt.val ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1035,7 +998,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
     )
   }
 
-  // ============ FASE 5: EXPERIMENTEREN ============
+  // ============ FASE 4: EXPERIMENTEREN ============
   if (phase === 'experimenteren') {
     const getStapLabel = (stap: Stap) => {
       if (stap.aanpak === 'zelf') {
@@ -1056,7 +1019,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
         <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 max-w-4xl">
-            {/* Header */}
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-2">
                 <div
@@ -1072,7 +1034,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
               </p>
             </div>
 
-            {/* 1. Resultaat - compact bovenaan */}
             <div className="flex gap-2 mb-4 flex-wrap">
               <div className="bg-white rounded-lg border shadow-sm px-3 py-2 flex items-center gap-2">
                 <span>📚</span>
@@ -1097,12 +1058,9 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
               </div>
             </div>
 
-            {/* Opdracht titel */}
             <h2 className="text-sm font-medium text-gray-500 mb-3">{gekozenOpdracht?.titel}</h2>
 
-            {/* 2. Twee-kolom layout: Stappen links, Acties rechts */}
             <div className="flex gap-4">
-              {/* Linker kolom: Stappen */}
               <div className="flex-1 space-y-2">
                 {stappen.map((stap) => {
                   const label = getStapLabel(stap)
@@ -1155,83 +1113,46 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                 })}
               </div>
 
-              {/* Rechter kolom: Acties */}
               <div className="flex-1">
                 {!wilVerbeteren && !isAanpassen ? (
-                  // Kernvraag: tevreden?
                   <div className="bg-white rounded-xl border shadow-sm p-4">
                     <h3 className="font-medium text-gray-900 mb-3 text-sm">Tevreden?</h3>
                     <div className="space-y-2">
-                      <Button
-                        onClick={handleBackToDashboard}
-                        className="w-full"
-                        size="sm"
-                      >
+                      <Button onClick={handleBackToDashboard} className="w-full" size="sm">
                         <CheckCircle2 className="h-4 w-4 mr-2" />
                         Ja, klaar
                       </Button>
-                      <Button
-                        onClick={() => setWilVerbeteren(true)}
-                        variant="outline"
-                        className="w-full"
-                        size="sm"
-                      >
+                      <Button onClick={() => setWilVerbeteren(true)} variant="outline" className="w-full" size="sm">
                         Aanpassen
                       </Button>
                     </div>
-                    <button
-                      onClick={handleStartOver}
-                      className="w-full mt-3 text-xs text-gray-400 hover:text-gray-600"
-                    >
+                    <button onClick={handleStartOver} className="w-full mt-3 text-xs text-gray-400 hover:text-gray-600">
                       Andere opdracht
                     </button>
                   </div>
                 ) : wilVerbeteren && !isAanpassen ? (
-                  // Keuze: wat wil je verbeteren?
                   <div className="bg-white rounded-xl border shadow-sm p-4">
                     <h3 className="font-medium text-gray-900 mb-3 text-sm">Wat verbeteren?</h3>
                     <div className="space-y-2 mb-3">
-                      <button
-                        onClick={() => setVerbeterOptie('leren')}
-                        className={`w-full p-2 rounded-lg border text-left flex items-center gap-2 transition-all text-sm ${
-                          verbeterOptie === 'leren'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <span>📚</span>
-                        <span className="font-medium text-gray-900">Meer leren</span>
-                      </button>
-                      <button
-                        onClick={() => setVerbeterOptie('kwaliteit')}
-                        className={`w-full p-2 rounded-lg border text-left flex items-center gap-2 transition-all text-sm ${
-                          verbeterOptie === 'kwaliteit'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <span>⭐</span>
-                        <span className="font-medium text-gray-900">Betere kwaliteit</span>
-                      </button>
-                      <button
-                        onClick={() => setVerbeterOptie('snelheid')}
-                        className={`w-full p-2 rounded-lg border text-left flex items-center gap-2 transition-all text-sm ${
-                          verbeterOptie === 'snelheid'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <span>⚡</span>
-                        <span className="font-medium text-gray-900">Sneller klaar</span>
-                      </button>
+                      {[
+                        { id: 'leren' as const, emoji: '📚', label: 'Meer leren' },
+                        { id: 'kwaliteit' as const, emoji: '⭐', label: 'Betere kwaliteit' },
+                        { id: 'snelheid' as const, emoji: '⚡', label: 'Sneller klaar' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          onClick={() => setVerbeterOptie(opt.id)}
+                          className={`w-full p-2 rounded-lg border text-left flex items-center gap-2 transition-all text-sm ${
+                            verbeterOptie === opt.id ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <span>{opt.emoji}</span>
+                          <span className="font-medium text-gray-900">{opt.label}</span>
+                        </button>
+                      ))}
                     </div>
                     <div className="space-y-2">
-                      <Button
-                        onClick={() => setIsAanpassen(true)}
-                        disabled={!verbeterOptie}
-                        className="w-full"
-                        size="sm"
-                      >
+                      <Button onClick={() => setIsAanpassen(true)} disabled={!verbeterOptie} className="w-full" size="sm">
                         Aanpassen
                       </Button>
                       <button
@@ -1243,7 +1164,6 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                     </div>
                   </div>
                 ) : (
-                  // Aanpas-modus
                   <div className="bg-white rounded-xl border shadow-sm p-4">
                     <h3 className="font-medium text-gray-900 mb-3 text-sm">Kies nieuwe aanpak</h3>
                     <p className="text-xs text-gray-500 mb-3">Klik op een stap om de aanpak te wijzigen</p>
@@ -1261,11 +1181,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                         Bekijk resultaat
                       </Button>
                       <button
-                        onClick={() => {
-                          setIsAanpassen(false)
-                          setWilVerbeteren(false)
-                          setVerbeterOptie(null)
-                        }}
+                        onClick={() => { setIsAanpassen(false); setWilVerbeteren(false); setVerbeterOptie(null); }}
                         className="w-full text-xs text-gray-500 hover:text-gray-700"
                       >
                         Annuleren

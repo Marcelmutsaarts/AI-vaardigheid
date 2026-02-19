@@ -33,13 +33,12 @@ export default function K1Page() {
   const { niveau, updateProgress } = useNiveau()
 
   // UI state
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   const [selfClicked, setSelfClicked] = useState(false)
   const [activeRole, setActiveRole] = useState<string | null>(null)
   const [aiResponses, setAiResponses] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
-  const [showNextButton, setShowNextButton] = useState(false)
 
   // Progress state
   const [rolesState, setRolesState] = useState<K1RolesState>({ triedRoles: [], openedCategories: [] })
@@ -60,10 +59,6 @@ export default function K1Page() {
     }
     const state = getK1RolesState()
     setRolesState(state)
-    // Show next button immediately if already qualified
-    if (canProceed(state.triedRoles)) {
-      setShowNextButton(true)
-    }
     setIsLoaded(true)
   }, [niveau, router])
 
@@ -83,16 +78,12 @@ export default function K1Page() {
   }
 
   const toggleCategory = (catId: string) => {
-    setExpandedCategories(prev => {
-      const next = new Set(prev)
-      if (next.has(catId)) {
-        next.delete(catId)
-      } else {
-        next.add(catId)
-        markCategoryOpened(catId)
-      }
-      return next
-    })
+    if (expandedCategory === catId) {
+      setExpandedCategory(null)
+    } else {
+      markCategoryOpened(catId)
+      setExpandedCategory(catId)
+    }
 
     // Reset active role when toggling
     setActiveRole(null)
@@ -157,11 +148,6 @@ export default function K1Page() {
       const newState = markRoleTried(roleId)
       setRolesState(newState)
 
-      // Check if we should show the next button (with fade-in delay)
-      if (canProceed(newState.triedRoles) && !showNextButton) {
-        setTimeout(() => setShowNextButton(true), 300)
-      }
-
       // Scroll to response
       setTimeout(() => {
         responseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -214,7 +200,7 @@ export default function K1Page() {
               <DrieluikCard
                 key={cat.id}
                 category={cat}
-                isExpanded={expandedCategories.has(cat.id)}
+                isExpanded={expandedCategory === cat.id}
                 selfClicked={selfClicked}
                 onSelfClick={handleSelfClick}
                 onToggle={() => toggleCategory(cat.id)}
@@ -223,7 +209,7 @@ export default function K1Page() {
           </div>
 
           {/* Instructietekst */}
-          {expandedCategories.size === 0 && !selfClicked && (
+          {!expandedCategory && !selfClicked && (
             <p className="text-sm text-gray-500 text-center mb-6 italic">
               Benieuwd wat AI voor je kan doen? Klik op een kaart en probeer het zelf.
             </p>
@@ -233,7 +219,7 @@ export default function K1Page() {
 
           {/* Samen met AI rollen */}
           <div ref={samenSectionRef}>
-            {expandedCategories.has('samen') && (
+            {expandedCategory === 'samen' && (
               <RolesSection
                 categoryId="samen"
                 introTekst={categories[1].introTekst!}
@@ -256,7 +242,7 @@ export default function K1Page() {
 
           {/* AI doet het rollen */}
           <div ref={aidoetSectionRef}>
-            {expandedCategories.has('aidoet') && (
+            {expandedCategory === 'aidoet' && (
               <RolesSection
                 categoryId="aidoet"
                 introTekst={categories[2].introTekst!}
@@ -285,7 +271,7 @@ export default function K1Page() {
           )}
 
           {/* Volgende stap - hidden until requirements met */}
-          {ready && showNextButton && (
+          {ready && (
             <div ref={nextButtonRef} className="animate-fadeIn">
               <Button onClick={handleComplete} size="lg" className="w-full">
                 Volgende stap
