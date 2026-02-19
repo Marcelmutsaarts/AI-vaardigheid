@@ -594,21 +594,21 @@ export const k2Teksten: Record<NiveauGroep, K2Teksten> = {
     hoeWerktHet: 'Kies eerst een opdracht. Dan ga je samen kijken welke stappen er nodig zijn.',
     stap1Titel: 'Opdelen in stappen',
     opdelenInstructie: 'Welke stappen heb je nodig om dit te doen? Wat doe je eerst? Wat daarna?',
-    aanpakInstructie: 'Kies per stap hoe je het gaat aanpakken.',
+    aanpakInstructie: 'Kies per stap hoe je het gaat aanpakken. Je mag meerdere rollen kiezen.',
   },
   havo: {
     introTekst: 'Je gaat zo met een opdracht aan de slag. Eerst bekijk je welke stappen er nodig zijn. Daarna bepaal je per stap hoe je AI wilt inzetten.',
     hoeWerktHet: 'Kies een opdracht. Daarna bedenk je welke stappen nodig zijn en kies je per stap je aanpak.',
     stap1Titel: 'Opdelen in stappen',
     opdelenInstructie: 'Welke stappen heb je nodig? Bedenk wat je eerst doet en wat daarna komt.',
-    aanpakInstructie: 'Kies per stap je aanpak. Klik op Samen of AI doet om een rol te kiezen.',
+    aanpakInstructie: 'Kies per stap je aanpak. Je kunt meerdere rollen combineren.',
   },
   vwo: {
     introTekst: 'Je gaat een opdracht aanpakken door deze te ontleden in stappen. Per stap bepaal je je strategie: zelf doen, samenwerken met AI, of uitbesteden aan AI.',
     hoeWerktHet: 'Kies een opdracht. Je ontleedt deze in stappen en bepaalt per stap je AI-strategie.',
     stap1Titel: 'Opdelen in stappen',
     opdelenInstructie: 'Ontleed deze opdracht in stappen. Wat is de logische volgorde?',
-    aanpakInstructie: 'Bepaal per stap je strategie. Bij Samen en AI doet kies je ook een specifieke rol.',
+    aanpakInstructie: 'Bepaal per stap je strategie. Combineer eventueel meerdere rollen.',
   },
 }
 

@@ -8,7 +8,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, ChevronDown, Plus, X, MessageCircle, Send, Loader2, CheckCircle2 } from 'lucide-react'
-import ApproachDropdown from '@/components/k2/ApproachDropdown'
+import ApproachDropdown, { StepApproach } from '@/components/k2/ApproachDropdown'
 import { kiesKleuren } from '@/lib/utils'
 import {
   getOpdrachtenVoorNiveau,
@@ -24,7 +24,9 @@ import ProgressStepper from '@/components/navigation/ProgressStepper'
 interface Stap {
   id: string
   titel: string
-  aanpak: Aanpak | null
+  approach: StepApproach | null  // new multi-select approach
+  // Backward compat fields (derived from approach, used by S2 and localStorage)
+  aanpak?: Aanpak | null
   rol?: string
 }
 
@@ -102,7 +104,28 @@ export default function K2Page() {
           while (velden.length < DEFAULT_VELDEN) velden.push('')
           setStapVelden(velden)
         }
-        if (state.stappen) setStappen(state.stappen)
+        if (state.stappen) {
+          // Migrate old format (aanpak/rol) to new format (approach) if needed
+          const migratedStappen = state.stappen.map((s: any) => {
+            if (s.approach !== undefined) return s  // Already new format
+            // Migrate from old format
+            let approach: StepApproach | null = null
+            if (s.aanpak === 'zelf') {
+              approach = { type: 'zelf' }
+            } else if (s.aanpak && s.rol) {
+              const rollen = s.aanpak === 'aihelpt' ? aiHelptRollen : aiDoetRollen
+              const rolInfo = rollen.find((r: any) => r.id === s.rol)
+              if (rolInfo) {
+                approach = {
+                  type: 'roles',
+                  roles: [{ id: rolInfo.id, category: s.aanpak, name: rolInfo.titel, emoji: rolInfo.emoji }]
+                }
+              }
+            }
+            return { ...s, approach }
+          })
+          setStappen(migratedStappen)
+        }
         if (state.totaalLeren !== undefined) setTotaalLeren(state.totaalLeren)
         if (state.totaalKwaliteit !== undefined) setTotaalKwaliteit(state.totaalKwaliteit)
         if (state.totaalSnelheid !== undefined) setTotaalSnelheid(state.totaalSnelheid)
@@ -144,14 +167,13 @@ export default function K2Page() {
     setSamenvattingLoading(true)
     const stappenBeschrijving = stappen.map(stap => {
       let aanpakTekst = ''
-      if (stap.aanpak === 'zelf') {
+      if (!stap.approach) {
+        aanpakTekst = 'nog niet gekozen'
+      } else if (stap.approach.type === 'zelf') {
         aanpakTekst = 'zelf doen'
-      } else if (stap.aanpak === 'aihelpt') {
-        const rol = getRolInfo('aihelpt', stap.rol)
-        aanpakTekst = `samen met AI (${rol?.titel || 'samen'})`
-      } else if (stap.aanpak === 'aidoet') {
-        const rol = getRolInfo('aidoet', stap.rol)
-        aanpakTekst = `AI laten doen (${rol?.titel || 'AI doet'})`
+      } else {
+        const names = stap.approach.roles.map(r => r.name).join(', ')
+        aanpakTekst = `met AI (${names})`
       }
       return `- ${stap.titel}: ${aanpakTekst}`
     }).join('\n')
@@ -277,11 +299,13 @@ export default function K2Page() {
       .filter(v => v.trim())
       .map((titel, i) => {
         const trimmed = titel.trim()
-        // Preserve aanpak/rol if the step title matches an existing step
+        // Preserve approach/aanpak/rol if the step title matches an existing step
         const existing = stappen.find(s => s.titel === trimmed)
         return {
           id: existing?.id || `stap-${Date.now()}-${i}`,
           titel: trimmed,
+          approach: existing?.approach ?? null,
+          // Backward compat
           aanpak: existing?.aanpak ?? null as Aanpak | null,
           rol: existing?.rol,
         }
@@ -298,11 +322,19 @@ export default function K2Page() {
     setPhase('kiezen')
   }
 
-  const handleSelectAanpak = (stapId: string, aanpak: Aanpak, rol?: string) => {
+  const deriveBackcompat = (approach: StepApproach | null): { aanpak: Aanpak | null; rol?: string } => {
+    if (!approach) return { aanpak: null, rol: undefined }
+    if (approach.type === 'zelf') return { aanpak: 'zelf', rol: undefined }
+    // For multi-role, use the first role's category for backward compat
+    const firstRole = approach.roles[0]
+    return { aanpak: firstRole.category as Aanpak, rol: firstRole.id }
+  }
+
+  const handleSelectApproach = (stapId: string, approach: StepApproach | null) => {
     setStappen(prev => prev.map(s =>
-      s.id === stapId ? { ...s, aanpak, rol } : s
+      s.id === stapId ? { ...s, approach, ...deriveBackcompat(approach) } : s
     ))
-    setOpenDropdown(null)
+    // Don't close dropdown here - the component handles that
   }
 
   const handleFinish = () => {
@@ -399,14 +431,8 @@ export default function K2Page() {
   }
 
   // Helpers
-  const alleStappenIngevuld = stappen.every(s => s.aanpak !== null)
+  const alleStappenIngevuld = stappen.every(s => s.approach !== null)
   const totaalIngevuld = totaalLeren !== null && totaalKwaliteit !== null && totaalSnelheid !== null
-
-  const getRolInfo = (aanpak: Aanpak, rolId?: string) => {
-    if (aanpak === 'aihelpt' && rolId) return aiHelptRollen.find(r => r.id === rolId)
-    if (aanpak === 'aidoet' && rolId) return aiDoetRollen.find(r => r.id === rolId)
-    return null
-  }
 
   // ============ FASE 1: TWEE-KOLOM LAYOUT ============
   if (phase === 'kiezen') {
@@ -757,8 +783,8 @@ export default function K2Page() {
                         </span>
                         <span className="flex-1 text-sm text-gray-900">{stap.titel}</span>
                         <ApproachDropdown
-                          value={stap.aanpak ? { category: stap.aanpak, role: stap.rol } : null}
-                          onChange={(val) => handleSelectAanpak(stap.id, val.category, val.role)}
+                          value={stap.approach}
+                          onChange={(val) => handleSelectApproach(stap.id, val)}
                           isOpen={openDropdown === stap.id}
                           onToggle={() => setOpenDropdown(openDropdown === stap.id ? null : stap.id)}
                           onClose={() => setOpenDropdown(null)}
@@ -928,16 +954,22 @@ export default function K2Page() {
   // ============ FASE 4: EXPERIMENTEREN ============
   if (phase === 'experimenteren') {
     const getStapLabel = (stap: Stap) => {
-      if (stap.aanpak === 'zelf') {
-        return { emoji: '👤', titel: 'Zelf', kleur: 'border-gray-200 bg-gray-50' }
-      } else if (stap.aanpak === 'aihelpt') {
-        const rol = getRolInfo('aihelpt', stap.rol)
-        return { emoji: rol?.emoji || '🤝', titel: rol?.titel || 'AI helpt', kleur: 'border-primary/30 bg-primary/5' }
-      } else if (stap.aanpak === 'aidoet') {
-        const rol = getRolInfo('aidoet', stap.rol)
-        return { emoji: rol?.emoji || '🤖', titel: rol?.titel || 'AI doet', kleur: 'border-purple-200 bg-purple-50' }
+      if (!stap.approach || stap.approach.type === 'zelf') {
+        if (stap.approach?.type === 'zelf') {
+          return { emoji: '👤', titel: 'Zelf', kleur: 'border-gray-200 bg-gray-50' }
+        }
+        return { emoji: '❓', titel: 'Onbekend', kleur: 'border-gray-200 bg-gray-50' }
       }
-      return { emoji: '❓', titel: 'Onbekend', kleur: 'border-gray-200 bg-gray-50' }
+      const roles = stap.approach.roles
+      if (roles.length === 1) {
+        const r = roles[0]
+        const kleur = r.category === 'aihelpt' ? 'border-primary/30 bg-primary/5' : 'border-purple-200 bg-purple-50'
+        return { emoji: r.emoji, titel: r.name, kleur }
+      }
+      // Multi-role
+      const emojis = roles.map(r => r.emoji).join(' ')
+      const names = roles.map(r => r.name).join(', ')
+      return { emoji: emojis, titel: names, kleur: 'border-primary/30 bg-primary/5' }
     }
 
     return (
@@ -1005,34 +1037,15 @@ export default function K2Page() {
                         </div>
                         {isAanpassen && <ChevronDown className="h-4 w-4 text-gray-400" />}
                       </div>
-                      {openDropdown === stap.id && (
-                        <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleSelectAanpak(stap.id, 'zelf'); setOpenDropdown(null); }}
-                            className="w-full px-2 py-1 text-left text-sm hover:bg-white/50 rounded flex items-center gap-2"
-                          >
-                            <span>👤</span> Zelf
-                          </button>
-                          <div className="text-xs text-gray-400 px-2 pt-1">AI helpt</div>
-                          {aiHelptRollen.map(rol => (
-                            <button
-                              key={rol.id}
-                              onClick={(e) => { e.stopPropagation(); handleSelectAanpak(stap.id, 'aihelpt', rol.id); setOpenDropdown(null); }}
-                              className="w-full px-2 py-1 text-left text-sm hover:bg-white/50 rounded flex items-center gap-2"
-                            >
-                              <span>{rol.emoji}</span> {rol.titel}
-                            </button>
-                          ))}
-                          <div className="text-xs text-gray-400 px-2 pt-1">AI doet</div>
-                          {aiDoetRollen.map(rol => (
-                            <button
-                              key={rol.id}
-                              onClick={(e) => { e.stopPropagation(); handleSelectAanpak(stap.id, 'aidoet', rol.id); setOpenDropdown(null); }}
-                              className="w-full px-2 py-1 text-left text-sm hover:bg-white/50 rounded flex items-center gap-2"
-                            >
-                              <span>{rol.emoji}</span> {rol.titel}
-                            </button>
-                          ))}
+                      {isAanpassen && (
+                        <div className="mt-2 pt-2 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
+                          <ApproachDropdown
+                            value={stap.approach}
+                            onChange={(val) => handleSelectApproach(stap.id, val)}
+                            isOpen={openDropdown === stap.id}
+                            onToggle={() => setOpenDropdown(openDropdown === stap.id ? null : stap.id)}
+                            onClose={() => setOpenDropdown(null)}
+                          />
                         </div>
                       )}
                     </div>
