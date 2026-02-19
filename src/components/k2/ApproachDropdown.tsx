@@ -143,8 +143,11 @@ export default function ApproachDropdown({
 
   const hasSelection = value !== null
 
-  // Track which flat index we're at when rendering items
-  let itemIndex = 0
+  const isItemSelected = (item: MenuItem) => {
+    if (!value) return false
+    if (item.category !== value.category) return false
+    return item.role === value.role
+  }
 
   const itemClass = (idx: number) =>
     `w-full px-3 py-2 text-left text-sm hover:bg-purple-50 rounded-md cursor-pointer transition-colors flex items-center gap-2 ${
@@ -174,32 +177,27 @@ export default function ApproachDropdown({
           }`}
           role="listbox"
         >
-          {/* Zelf doen */}
-          {(() => {
-            const idx = itemIndex++
-            return (
-              <button
-                key="zelf"
-                ref={(el) => { itemRefs.current[idx] = el }}
-                type="button"
-                onClick={() => handleSelect('zelf')}
-                onMouseEnter={() => setFocusedIndex(idx)}
-                onMouseLeave={() => setFocusedIndex(-1)}
-                className={itemClass(idx)}
-                role="option"
-              >
-                <span>✋</span>
-                <span>Zelf doen</span>
-              </button>
-            )
-          })()}
+          {/* Zelf doen — index 0 */}
+          <button
+            ref={(el) => { itemRefs.current[0] = el }}
+            type="button"
+            onClick={() => handleSelect('zelf')}
+            onMouseEnter={() => setFocusedIndex(0)}
+            onMouseLeave={() => setFocusedIndex(-1)}
+            className={itemClass(0)}
+            role="option"
+            aria-selected={isItemSelected(menuItems[0])}
+          >
+            <span>✋</span>
+            <span>Zelf doen</span>
+          </button>
 
-          {/* Samen met AI group */}
+          {/* Samen met AI group — indices 1-4 */}
           <div className="px-2 pt-3 pb-1 text-xs uppercase text-gray-400 font-medium">
             Samen met AI
           </div>
-          {aiHelptRollen.map((rol) => {
-            const idx = itemIndex++
+          {aiHelptRollen.map((rol, i) => {
+            const idx = 1 + i
             return (
               <button
                 key={rol.id}
@@ -210,6 +208,7 @@ export default function ApproachDropdown({
                 onMouseLeave={() => setFocusedIndex(-1)}
                 className={itemClass(idx)}
                 role="option"
+                aria-selected={isItemSelected(menuItems[idx])}
               >
                 <span>{rol.emoji}</span>
                 <span>{rol.titel}</span>
@@ -217,12 +216,12 @@ export default function ApproachDropdown({
             )
           })}
 
-          {/* AI doet het group */}
+          {/* AI doet het group — indices 5-8 */}
           <div className="px-2 pt-3 pb-1 text-xs uppercase text-gray-400 font-medium">
             AI doet het
           </div>
-          {aiDoetRollen.map((rol) => {
-            const idx = itemIndex++
+          {aiDoetRollen.map((rol, i) => {
+            const idx = 5 + i
             return (
               <button
                 key={rol.id}
@@ -233,6 +232,7 @@ export default function ApproachDropdown({
                 onMouseLeave={() => setFocusedIndex(-1)}
                 className={itemClass(idx)}
                 role="option"
+                aria-selected={isItemSelected(menuItems[idx])}
               >
                 <span>{rol.emoji}</span>
                 <span>{rol.titel}</span>

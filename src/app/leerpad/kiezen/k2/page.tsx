@@ -272,14 +272,20 @@ export default function K2Page() {
   }
 
   const handleVerder = () => {
-    // Convert non-empty velden to Stap objects
+    // Convert non-empty velden to Stap objects, preserving existing selections
     const nieuweStappen = stapVelden
       .filter(v => v.trim())
-      .map((titel, i) => ({
-        id: `stap-${Date.now()}-${i}`,
-        titel: titel.trim(),
-        aanpak: null as Aanpak | null,
-      }))
+      .map((titel, i) => {
+        const trimmed = titel.trim()
+        // Preserve aanpak/rol if the step title matches an existing step
+        const existing = stappen.find(s => s.titel === trimmed)
+        return {
+          id: existing?.id || `stap-${Date.now()}-${i}`,
+          titel: trimmed,
+          aanpak: existing?.aanpak ?? null as Aanpak | null,
+          rol: existing?.rol,
+        }
+      })
     setStappen(nieuweStappen)
     setPhase('aanpak')
   }
