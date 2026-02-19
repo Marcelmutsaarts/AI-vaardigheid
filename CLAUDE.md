@@ -85,16 +85,16 @@ Eén scherm met twee fases die de rechterkolom transformeren:
 - Bevestigingsdialoog bij wisselen opdracht, Enter-navigatie, auto-scroll mobiel
 
 **Fase 2 — Aanpak kiezen** (`phase: 'aanpak'`):
-- Links (40%): opdrachten locked (opacity-60) + legenda (Zelf/Samen/AI doet uitleg)
-- Rechts (60%): stap-kaarten met drie chips per stap (✋ Zelf, 🤝 Samen ▾, 🤖 AI doet ▾)
-- Klik op Samen/AI doet → roldropdown klapt open met 4 rollen + emoji + beschrijving
-- Na rolkeuze → gecombineerde chip ("🤝 Samen → 💡 Brainstormer") met ✕ reset
-- Klik op Zelf → direct actief (paarse chip), geen dropdown nodig
+- Links (40%): opdrachten locked (opacity-60)
+- Rechts (60%): stap-rijen identiek aan fase 1, met compacte dropdown rechts per stap
+- Dropdown bevat 3 groepen: Zelf doen / Samen met AI (4 rollen) / AI doet het (4 rollen)
+- Keuze toont als paarse pill met emoji + rolnaam
+- Geen aparte legenda meer nodig
 - "← Stappen aanpassen" terug naar fase 1, keuzes worden onthouden
 - "Verder →" disabled tot alle stappen een aanpak hebben
 - Niveau-afhankelijke instructietekst (`aanpakInstructie` in k2Teksten)
 
-**Component**: `src/components/k2/StepApproachChips.tsx`
+**Component**: `src/components/k2/ApproachDropdown.tsx`
 - Phase type: `'kiezen' | 'aanpak' | 'resultaat' | 'experimenteren'`
 - Data: `k2Teksten` in `src/lib/kiezen-content.ts`
 
