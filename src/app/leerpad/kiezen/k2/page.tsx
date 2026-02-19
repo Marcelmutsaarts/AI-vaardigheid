@@ -9,6 +9,8 @@ import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, Plus, X, MessageCircle, Send, Loader2, CheckCircle2 } from 'lucide-react'
 import ApproachDropdown, { StepApproach } from '@/components/k2/ApproachDropdown'
+import { ApproachOverview } from '@/components/k2/ApproachOverview'
+import { ReflectionQuestions } from '@/components/k2/ReflectionQuestions'
 import { kiesKleuren } from '@/lib/utils'
 import {
   getOpdrachtenVoorNiveau,
@@ -76,10 +78,6 @@ export default function K2Page() {
   const [chatLoading, setChatLoading] = useState(false)
   const [chatStreamingContent, setChatStreamingContent] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
-
-  // Samenvatting state
-  const [strategieSamenvatting, setStrategieSamenvatting] = useState('')
-  const [samenvattingLoading, setSamenvattingLoading] = useState(false)
 
   // Experimenteer state
   const [wilVerbeteren, setWilVerbeteren] = useState(false)
@@ -154,58 +152,6 @@ export default function K2Page() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages, chatStreamingContent])
-
-  // Genereer samenvatting wanneer we naar resultaat fase gaan
-  useEffect(() => {
-    if (phase === 'resultaat' && !strategieSamenvatting && !samenvattingLoading && stappen.length > 0) {
-      generateStrategieSamenvatting()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase])
-
-  const generateStrategieSamenvatting = async () => {
-    setSamenvattingLoading(true)
-    const stappenBeschrijving = stappen.map(stap => {
-      let aanpakTekst = ''
-      if (!stap.approach) {
-        aanpakTekst = 'nog niet gekozen'
-      } else if (stap.approach.type === 'zelf') {
-        aanpakTekst = 'zelf doen'
-      } else {
-        const names = stap.approach.roles.map(r => r.name).join(', ')
-        aanpakTekst = `met AI (${names})`
-      }
-      return `- ${stap.titel}: ${aanpakTekst}`
-    }).join('\n')
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: 'Vat mijn strategie samen',
-          context: {
-            niveau: niveau.schoolType,
-            leerjaar: niveau.leerjaar,
-            currentModule: 'kiezen',
-            moduleContext: `Je bent een coach die een leerling helpt reflecteren op hun AI-strategie.\n\nOpdracht: ${gekozenOpdracht?.titel}\n\nGekozen aanpak per stap:\n${stappenBeschrijving}\n\nSchrijf in 2-3 korte, directe zinnen wat deze strategie inhoudt.\nGebruik "je" en spreek de leerling aan.\nWees neutraal - geen oordeel over goed of fout.\nFocus op WAT de leerling gaat doen, niet of het slim is.\nHoud het heel kort en concreet.`,
-            aiMode: 'doet',
-            conversationHistory: []
-          }
-        })
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setStrategieSamenvatting(data.reply)
-      } else {
-        setStrategieSamenvatting('Je hebt je strategie bepaald. Bekijk hieronder wat dit betekent voor je leren en het eindresultaat.')
-      }
-    } catch {
-      setStrategieSamenvatting('Je hebt je strategie bepaald. Bekijk hieronder wat dit betekent voor je leren en het eindresultaat.')
-    } finally {
-      setSamenvattingLoading(false)
-    }
-  }
 
   // MBO/HBO hebben geen leerjaar, VO niveaus wel
   const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
@@ -360,7 +306,6 @@ export default function K2Page() {
     setTotaalKwaliteit(null)
     setTotaalSnelheid(null)
     setChatMessages([])
-    setStrategieSamenvatting('')
     setWilVerbeteren(false)
     setVerbeterOptie(null)
     setIsAanpassen(false)
@@ -853,87 +798,29 @@ export default function K2Page() {
                 </div>
                 <h1 className="text-xl font-bold text-gray-900">Stap 3: Inschatten</h1>
               </div>
-              <p className="text-gray-600">
-                <span className="font-medium">{gekozenOpdracht?.titel}</span>
-              </p>
             </div>
 
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
-              <p className="text-sm text-gray-700">
-                Denk na over je gekozen aanpak. Wat betekent dit voor hoeveel je leert, de kwaliteit van het resultaat en hoe snel je klaar bent?
-              </p>
-            </div>
+            <ApproachOverview
+              taskName={gekozenOpdracht?.titel || ''}
+              steps={stappen.map(s => ({
+                text: s.titel,
+                approach: s.approach
+              }))}
+            />
 
-            <div className="bg-white rounded-xl border shadow-sm p-5 mb-6">
-              {samenvattingLoading ? (
-                <div className="flex items-center gap-3 text-gray-500">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="text-sm">Even kijken naar je strategie...</span>
-                </div>
-              ) : (
-                <p className="text-gray-700 leading-relaxed">{strategieSamenvatting}</p>
-              )}
-            </div>
-
-            <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
-              <h3 className="font-medium text-gray-900 mb-4">Wat denk jij?</h3>
-
-              <div className="mb-6">
-                <p className="text-sm text-gray-700 mb-3">
-                  Wat doet deze aanpak met je <strong>leren</strong>, vergeleken met alles zelf doen?
-                </p>
-                <div className="flex gap-2">
-                  {[{ val: -1, label: 'Minder' }, { val: 0, label: 'Evenveel' }, { val: 1, label: 'Meer' }].map(opt => (
-                    <button
-                      key={opt.val}
-                      onClick={() => setTotaalLeren(opt.val)}
-                      className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                        totaalLeren === opt.val ? 'bg-primary text-white border-primary' : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-sm text-gray-700 mb-3">
-                  Wat doet deze aanpak met de <strong>kwaliteit</strong> van het eindresultaat?
-                </p>
-                <div className="flex gap-2">
-                  {[{ val: -1, label: 'Lager' }, { val: 0, label: 'Hetzelfde' }, { val: 1, label: 'Hoger' }].map(opt => (
-                    <button
-                      key={opt.val}
-                      onClick={() => setTotaalKwaliteit(opt.val)}
-                      className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                        totaalKwaliteit === opt.val ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-700 mb-3">
-                  Wat doet deze aanpak met de <strong>snelheid</strong> waarmee je klaar bent?
-                </p>
-                <div className="flex gap-2">
-                  {[{ val: -1, label: 'Langzamer' }, { val: 0, label: 'Hetzelfde' }, { val: 1, label: 'Sneller' }].map(opt => (
-                    <button
-                      key={opt.val}
-                      onClick={() => setTotaalSnelheid(opt.val)}
-                      className={`flex-1 py-3 px-3 rounded-lg text-sm font-medium transition-all border ${
-                        totaalSnelheid === opt.val ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="my-6">
+              <ReflectionQuestions
+                values={{
+                  learning: totaalLeren,
+                  quality: totaalKwaliteit,
+                  speed: totaalSnelheid
+                }}
+                onChange={(vals) => {
+                  setTotaalLeren(vals.learning)
+                  setTotaalKwaliteit(vals.quality)
+                  setTotaalSnelheid(vals.speed)
+                }}
+              />
             </div>
 
             <Button
@@ -944,7 +831,7 @@ export default function K2Page() {
             >
               {totaalIngevuld ? (
                 <>
-                  Klaar
+                  Verder
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               ) : (
