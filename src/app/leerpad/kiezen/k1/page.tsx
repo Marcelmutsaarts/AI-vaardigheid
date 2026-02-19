@@ -7,10 +7,11 @@ import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import ProgressStepper from '@/components/navigation/ProgressStepper'
 import {
+  categories,
   samenRollen,
   aiDoetRollen,
   onderwerpPerNiveau,
@@ -32,19 +33,24 @@ export default function K1Page() {
   const { niveau, updateProgress } = useNiveau()
 
   // UI state
-  const [expandedCategory, setExpandedCategory] = useState<'samen' | 'aidoet' | null>(null)
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [selfClicked, setSelfClicked] = useState(false)
   const [activeRole, setActiveRole] = useState<string | null>(null)
-  const [aiResponse, setAiResponse] = useState<string | null>(null)
+  const [aiResponses, setAiResponses] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [showNextButton, setShowNextButton] = useState(false)
 
   // Progress state
   const [rolesState, setRolesState] = useState<K1RolesState>({ triedRoles: [], openedCategories: [] })
   const [isLoaded, setIsLoaded] = useState(false)
 
-  const rolesSectionRef = useRef<HTMLDivElement>(null)
-  const responseRef = useRef<HTMLDivElement>(null)
+  // Refs for scroll targets
+  const samenSectionRef = useRef<HTMLDivElement>(null!)
+  const aidoetSectionRef = useRef<HTMLDivElement>(null!)
+  const roleInteractionRef = useRef<HTMLDivElement>(null!)
+  const responseRef = useRef<HTMLDivElement>(null!)
+  const nextButtonRef = useRef<HTMLDivElement>(null!)
 
   useEffect(() => {
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
@@ -52,7 +58,12 @@ export default function K1Page() {
       router.push('/')
       return
     }
-    setRolesState(getK1RolesState())
+    const state = getK1RolesState()
+    setRolesState(state)
+    // Show next button immediately if already qualified
+    if (canProceed(state.triedRoles)) {
+      setShowNextButton(true)
+    }
     setIsLoaded(true)
   }, [niveau, router])
 
@@ -71,48 +82,51 @@ export default function K1Page() {
     router.push('/leerpad/kiezen/k1-complete')
   }
 
-  const toggleCategory = (cat: 'samen' | 'aidoet') => {
-    if (expandedCategory === cat) {
-      setExpandedCategory(null)
-    } else {
-      setExpandedCategory(cat)
-      const newState = markCategoryOpened(cat)
-      setRolesState(newState)
-    }
-    // Reset active role and response when switching categories
+  const toggleCategory = (catId: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev)
+      if (next.has(catId)) {
+        next.delete(catId)
+      } else {
+        next.add(catId)
+        markCategoryOpened(catId)
+      }
+      return next
+    })
+
+    // Reset active role when toggling
     setActiveRole(null)
-    setAiResponse(null)
     setApiError(null)
 
-    // Scroll to roles section after a brief delay for animation
+    // Scroll to the opened section
     setTimeout(() => {
-      rolesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }, 100)
+      const ref = catId === 'samen' ? samenSectionRef : aidoetSectionRef
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 150)
   }
 
   const handleSelfClick = () => {
     setSelfClicked(true)
-    setExpandedCategory(null)
-    setActiveRole(null)
-    setAiResponse(null)
   }
 
   const handleRoleClick = (roleId: string) => {
     if (activeRole === roleId) {
       setActiveRole(null)
-      setAiResponse(null)
       setApiError(null)
     } else {
       setActiveRole(roleId)
-      setAiResponse(null)
       setApiError(null)
+
+      // Scroll to role interaction after it renders
+      setTimeout(() => {
+        roleInteractionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 150)
     }
   }
 
   const handleTryRole = async (roleId: string, input: string) => {
     setIsLoading(true)
     setApiError(null)
-    setAiResponse(null)
 
     const prompt = buildRolePrompt(roleId, niveauGroep, input)
 
@@ -137,11 +151,16 @@ export default function K1Page() {
       }
 
       const data = await response.json()
-      setAiResponse(data.reply)
+      setAiResponses(prev => ({ ...prev, [roleId]: data.reply }))
 
       // Mark role as tried
       const newState = markRoleTried(roleId)
       setRolesState(newState)
+
+      // Check if we should show the next button (with fade-in delay)
+      if (canProceed(newState.triedRoles) && !showNextButton) {
+        setTimeout(() => setShowNextButton(true), 300)
+      }
 
       // Scroll to response
       setTimeout(() => {
@@ -156,8 +175,6 @@ export default function K1Page() {
 
   const ready = canProceed(rolesState.triedRoles)
   const hint = getProgressHint(rolesState.triedRoles)
-
-  const currentRoles = expandedCategory === 'samen' ? samenRollen : expandedCategory === 'aidoet' ? aiDoetRollen : []
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -193,141 +210,239 @@ export default function K1Page() {
 
           {/* === FASE 1: Drieluik === */}
           <div className="grid sm:grid-cols-3 gap-3 mb-4">
-            {/* Zelf */}
-            <button
-              onClick={handleSelfClick}
-              className={`bg-white rounded-xl border-2 shadow-sm p-5 text-center transition-all hover:shadow-md ${
-                selfClicked ? 'border-gray-400' : 'border-gray-200'
-              }`}
-            >
-              <span className="text-4xl mb-2 block">✋</span>
-              <h2 className="font-bold text-gray-900 text-lg">Zelf</h2>
-              <p className="text-sm text-gray-500 mt-1">Jij doet het werk. Geen AI nodig.</p>
-            </button>
-
-            {/* Samen met AI */}
-            <button
-              onClick={() => toggleCategory('samen')}
-              className={`bg-white rounded-xl border-2 shadow-sm p-5 text-center transition-all hover:shadow-md ${
-                expandedCategory === 'samen' ? 'border-[#a15df5] ring-1 ring-[#a15df5]/20' : 'border-gray-200'
-              }`}
-            >
-              <span className="text-4xl mb-2 block">🤝</span>
-              <h2 className="font-bold text-gray-900 text-lg">Samen met AI</h2>
-              <p className="text-sm text-gray-500 mt-1">AI helpt je denken, maar jij blijft aan het stuur.</p>
-            </button>
-
-            {/* AI doet het */}
-            <button
-              onClick={() => toggleCategory('aidoet')}
-              className={`bg-white rounded-xl border-2 shadow-sm p-5 text-center transition-all hover:shadow-md ${
-                expandedCategory === 'aidoet' ? 'border-[#a15df5] ring-1 ring-[#a15df5]/20' : 'border-gray-200'
-              }`}
-            >
-              <span className="text-4xl mb-2 block">🤖</span>
-              <h2 className="font-bold text-gray-900 text-lg">AI doet het</h2>
-              <p className="text-sm text-gray-500 mt-1">AI levert het werk, jij checkt het resultaat.</p>
-            </button>
+            {categories.map((cat) => (
+              <DrieluikCard
+                key={cat.id}
+                category={cat}
+                isExpanded={expandedCategories.has(cat.id)}
+                selfClicked={selfClicked}
+                onSelfClick={handleSelfClick}
+                onToggle={() => toggleCategory(cat.id)}
+              />
+            ))}
           </div>
 
           {/* Inline bevestiging voor "Zelf" */}
-          {selfClicked && !expandedCategory && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-center text-sm text-gray-600">
+          {selfClicked && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-center text-sm text-gray-600 animate-fadeIn">
               Goed om te weten — soms is zelf doen de beste keuze!
             </div>
           )}
 
           {/* Instructietekst */}
-          {!expandedCategory && !selfClicked && (
-            <p className="text-sm text-gray-500 text-center mb-6">
-              Klik op &lsquo;Samen met AI&rsquo; of &lsquo;AI doet het&rsquo; om te ontdekken welke rollen AI kan spelen.
+          {expandedCategories.size === 0 && !selfClicked && (
+            <p className="text-sm text-gray-500 text-center mb-6 italic">
+              Benieuwd wat AI voor je kan doen? Klik op een kaart en probeer het zelf.
             </p>
           )}
 
-          {/* === FASE 2: Rollen === */}
-          <div ref={rolesSectionRef}>
-            {expandedCategory && (
-              <div className="animate-in">
-                {/* Categorie intro */}
-                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
-                  <p className="text-sm text-gray-700">
-                    {expandedCategory === 'samen'
-                      ? 'AI helpt je denken. Kies een rol en probeer het:'
-                      : 'AI levert het werk. Kies een rol en probeer het:'}
-                  </p>
-                </div>
+          {/* === FASE 2: Rollen per categorie === */}
 
-                {/* Rollen grid */}
-                <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                  {currentRoles.map((role) => (
-                    <RoleCard
-                      key={role.id}
-                      role={role}
-                      isActive={activeRole === role.id}
-                      isTried={rolesState.triedRoles.includes(role.id)}
-                      onClick={() => handleRoleClick(role.id)}
-                    />
-                  ))}
-                </div>
+          {/* Samen met AI rollen */}
+          <div ref={samenSectionRef}>
+            {expandedCategories.has('samen') && (
+              <RolesSection
+                categoryId="samen"
+                introTekst={categories[1].introTekst!}
+                roles={samenRollen}
+                activeRole={activeRole}
+                triedRoles={rolesState.triedRoles}
+                aiResponses={aiResponses}
+                isLoading={isLoading}
+                apiError={apiError}
+                niveauGroep={niveauGroep}
+                onderwerpen={onderwerpen}
+                voorbeeldTekst={voorbeeldTekst}
+                roleInteractionRef={roleInteractionRef}
+                responseRef={responseRef}
+                onRoleClick={handleRoleClick}
+                onTryRole={handleTryRole}
+              />
+            )}
+          </div>
 
-                {/* Active role interaction */}
-                {activeRole && (
-                  <RoleInteraction
-                    role={currentRoles.find(r => r.id === activeRole)!}
-                    niveauGroep={niveauGroep}
-                    onderwerpen={onderwerpen}
-                    voorbeeldTekst={voorbeeldTekst}
-                    aiResponse={aiResponse}
-                    isLoading={isLoading}
-                    apiError={apiError}
-                    responseRef={responseRef}
-                    onTry={(input) => handleTryRole(activeRole, input)}
-                  />
-                )}
-              </div>
+          {/* AI doet het rollen */}
+          <div ref={aidoetSectionRef}>
+            {expandedCategories.has('aidoet') && (
+              <RolesSection
+                categoryId="aidoet"
+                introTekst={categories[2].introTekst!}
+                roles={aiDoetRollen}
+                activeRole={activeRole}
+                triedRoles={rolesState.triedRoles}
+                aiResponses={aiResponses}
+                isLoading={isLoading}
+                apiError={apiError}
+                niveauGroep={niveauGroep}
+                onderwerpen={onderwerpen}
+                voorbeeldTekst={voorbeeldTekst}
+                roleInteractionRef={roleInteractionRef}
+                responseRef={responseRef}
+                onRoleClick={handleRoleClick}
+                onTryRole={handleTryRole}
+              />
             )}
           </div>
 
           {/* Progress hint */}
           {hint && (
-            <p className="text-sm text-primary text-center mb-4 font-medium">
+            <p className="text-sm text-primary text-center mb-4 font-medium animate-fadeIn">
               {hint}
             </p>
           )}
 
-          {/* Volgende stap */}
-          {ready && (
-            <Button onClick={handleComplete} size="lg" className="w-full">
-              Volgende stap
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+          {/* Volgende stap - hidden until requirements met */}
+          {ready && showNextButton && (
+            <div ref={nextButtonRef} className="animate-fadeIn">
+              <Button onClick={handleComplete} size="lg" className="w-full">
+                Volgende stap
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
           )}
         </div>
       </main>
 
       <Footer />
 
-      {/* Animation styles */}
-      <style jsx>{`
-        .animate-in {
-          animation: slideDown 0.3s ease-out;
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.4s ease-out;
+        }
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
         }
       `}</style>
     </div>
   )
 }
 
-// === Sub-componenten ===
+// === DrieluikCard ===
+
+function DrieluikCard({
+  category,
+  isExpanded,
+  selfClicked,
+  onSelfClick,
+  onToggle,
+}: {
+  category: (typeof categories)[number]
+  isExpanded: boolean
+  selfClicked: boolean
+  onSelfClick: () => void
+  onToggle: () => void
+}) {
+  const isZelf = category.id === 'zelf'
+
+  return (
+    <button
+      onClick={isZelf ? onSelfClick : onToggle}
+      className={`
+        rounded-xl border-2 p-5 text-center transition-all duration-200
+        ${category.bgClass} ${category.hoverClass}
+        ${isExpanded ? 'border-[#a15df5] ring-2 ring-[#a15df5]/20 shadow-md' : 'border-transparent shadow-sm'}
+        ${isZelf && selfClicked ? 'border-gray-300' : ''}
+        ${!isZelf ? 'hover:shadow-md hover:scale-[1.02]' : 'hover:shadow-sm'}
+      `}
+    >
+      <span className="text-4xl mb-2 block">{category.emoji}</span>
+      <h2 className="font-bold text-gray-900 text-lg">{category.titel}</h2>
+      <p className="text-sm text-gray-500 mt-1">{category.subtitel}</p>
+      {category.expandable && (
+        <p className="text-xs text-primary font-medium mt-2">
+          {isExpanded ? 'Inklappen' : 'Ontdek \u2192'}
+        </p>
+      )}
+    </button>
+  )
+}
+
+// === RolesSection ===
+
+function RolesSection({
+  categoryId,
+  introTekst,
+  roles,
+  activeRole,
+  triedRoles,
+  aiResponses,
+  isLoading,
+  apiError,
+  niveauGroep,
+  onderwerpen,
+  voorbeeldTekst,
+  roleInteractionRef,
+  responseRef,
+  onRoleClick,
+  onTryRole,
+}: {
+  categoryId: string
+  introTekst: string
+  roles: K1Role[]
+  activeRole: string | null
+  triedRoles: string[]
+  aiResponses: Record<string, string>
+  isLoading: boolean
+  apiError: string | null
+  niveauGroep: NiveauGroep
+  onderwerpen: string[]
+  voorbeeldTekst: string
+  roleInteractionRef: React.RefObject<HTMLDivElement>
+  responseRef: React.RefObject<HTMLDivElement>
+  onRoleClick: (roleId: string) => void
+  onTryRole: (roleId: string, input: string) => void
+}) {
+  const activeRoleInThisSection = roles.find(r => r.id === activeRole)
+
+  return (
+    <div className="mb-6 animate-slideDown">
+      {/* Categorie intro */}
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
+        <p className="text-sm text-gray-700 font-medium">{introTekst}</p>
+      </div>
+
+      {/* Rollen grid */}
+      <div className="grid sm:grid-cols-2 gap-3 mb-4">
+        {roles.map((role) => (
+          <RoleCard
+            key={role.id}
+            role={role}
+            isActive={activeRole === role.id}
+            isTried={triedRoles.includes(role.id)}
+            onClick={() => onRoleClick(role.id)}
+          />
+        ))}
+      </div>
+
+      {/* Active role interaction */}
+      {activeRoleInThisSection && (
+        <div ref={roleInteractionRef}>
+          <RoleInteraction
+            role={activeRoleInThisSection}
+            niveauGroep={niveauGroep}
+            onderwerpen={onderwerpen}
+            voorbeeldTekst={voorbeeldTekst}
+            aiResponse={aiResponses[activeRoleInThisSection.id] || null}
+            isLoading={isLoading}
+            apiError={apiError}
+            responseRef={responseRef}
+            onTry={(input) => onTryRole(activeRoleInThisSection.id, input)}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// === RoleCard ===
 
 function RoleCard({
   role,
@@ -343,24 +458,29 @@ function RoleCard({
   return (
     <button
       onClick={onClick}
-      className={`relative bg-white rounded-xl border-2 p-4 text-left transition-all hover:shadow-md ${
+      className={`relative bg-white rounded-xl border-2 p-4 text-left transition-all duration-200 hover:shadow-md ${
         isActive
-          ? 'border-[#a15df5] ring-1 ring-[#a15df5]/20'
+          ? 'border-[#a15df5] ring-1 ring-[#a15df5]/20 shadow-md'
           : 'border-gray-200'
       }`}
     >
       <div className="flex items-center gap-3">
         <span className="text-2xl">{role.emoji}</span>
-        <span className="font-semibold text-gray-900">{role.titel}</span>
-        {isTried && (
-          <span className="ml-auto flex-shrink-0 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-            <Check className="w-3 h-3 text-green-600" />
-          </span>
-        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-900">{role.titel}</span>
+            {isTried && (
+              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500" />
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mt-0.5">{role.tagline}</p>
+        </div>
       </div>
     </button>
   )
 }
+
+// === RoleInteraction ===
 
 function RoleInteraction({
   role,
@@ -385,15 +505,18 @@ function RoleInteraction({
 }) {
   if (role.inputType === 'onderwerp') {
     return (
-      <div className="bg-white rounded-xl border shadow-sm p-5 mb-4 animate-in">
-        <p className="text-sm text-gray-600 mb-3">Kies een onderwerp:</p>
+      <div className="bg-white rounded-xl border shadow-sm p-5 mb-4 animate-slideDown">
+        {/* Mini-scenario */}
+        <p className="text-sm text-gray-700 mb-4 font-medium">{role.miniScenario}</p>
+
+        {/* Onderwerp knoppen */}
         <div className="flex flex-wrap gap-2 mb-4">
           {onderwerpen.map((onderwerp) => (
             <button
               key={onderwerp}
               onClick={() => onTry(onderwerp)}
               disabled={isLoading}
-              className="px-4 py-2 rounded-lg bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {onderwerp}
             </button>
@@ -405,6 +528,7 @@ function RoleInteraction({
           isLoading={isLoading}
           error={apiError}
           responseRef={responseRef}
+          onRetry={() => {}}
         />
       </div>
     )
@@ -412,15 +536,20 @@ function RoleInteraction({
 
   // Tekst-type
   return (
-    <div className="bg-white rounded-xl border shadow-sm p-5 mb-4 animate-in">
-      <p className="text-sm text-gray-600 mb-3">Voorbeeldtekst:</p>
-      <blockquote className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 italic border-l-3 border-gray-300 mb-4">
+    <div className="bg-white rounded-xl border shadow-sm p-5 mb-4 animate-slideDown">
+      {/* Mini-scenario */}
+      <p className="text-sm text-gray-700 mb-4 font-medium">{role.miniScenario}</p>
+
+      {/* Voorbeeldtekst in licht vlak */}
+      <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 leading-relaxed mb-4">
         {voorbeeldTekst}
-      </blockquote>
+      </div>
+
+      {/* Probeer het knop */}
       <button
         onClick={() => onTry(voorbeeldTekst)}
         disabled={isLoading}
-        className="px-6 py-2 rounded-lg bg-[#a15df5] text-white font-medium text-sm hover:bg-[#7947ba] transition-colors disabled:opacity-50 mb-4"
+        className="px-6 py-2 rounded-lg bg-[#a15df5] text-white font-medium text-sm hover:bg-[#7947ba] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
       >
         Probeer het
       </button>
@@ -430,21 +559,26 @@ function RoleInteraction({
         isLoading={isLoading}
         error={apiError}
         responseRef={responseRef}
+        onRetry={() => onTry(voorbeeldTekst)}
       />
     </div>
   )
 }
+
+// === ResponseArea (chatballon styling) ===
 
 function ResponseArea({
   response,
   isLoading,
   error,
   responseRef,
+  onRetry,
 }: {
   response: string | null
   isLoading: boolean
   error: string | null
   responseRef: React.RefObject<HTMLDivElement>
+  onRetry: () => void
 }) {
   if (!response && !isLoading && !error) return null
 
@@ -457,13 +591,20 @@ function ResponseArea({
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-          {error}
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+          <p>{error}</p>
+          <button
+            onClick={onRetry}
+            className="mt-2 text-xs text-red-600 underline hover:text-red-800"
+          >
+            Opnieuw proberen
+          </button>
         </div>
       )}
       {response && !isLoading && (
-        <div className="bg-[#f8f5ff] rounded-lg p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-          {response}
+        <div className="relative bg-purple-50 rounded-xl p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap animate-fadeIn">
+          <span className="absolute -top-2 -left-1 text-lg">{'\u{1F916}'}</span>
+          <div className="ml-1">{response}</div>
         </div>
       )}
     </div>
