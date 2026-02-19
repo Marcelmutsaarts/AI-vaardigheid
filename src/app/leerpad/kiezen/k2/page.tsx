@@ -14,8 +14,10 @@ import {
   OpdrachtOptie,
   aiHelptRollen,
   aiDoetRollen,
-  Aanpak
+  Aanpak,
+  k2Teksten
 } from '@/lib/kiezen-content'
+import { getNiveauGroep } from '@/lib/transition-utils'
 import ProgressStepper from '@/components/navigation/ProgressStepper'
 
 interface Stap {
@@ -30,7 +32,7 @@ interface ChatMessage {
   content: string
 }
 
-type Phase = 'kiezen' | 'onderdelen' | 'aanpak' | 'resultaat' | 'experimenteren'
+type Phase = 'kiezen' | 'voorbeeld' | 'onderdelen' | 'aanpak' | 'resultaat' | 'experimenteren'
 
 const STORAGE_KEY = 'kies-k2-state'
 
@@ -191,15 +193,21 @@ Houd het heel kort en concreet.`,
   }
 
   const opdrachten = getOpdrachtenVoorNiveau(niveau.schoolType, niveau.leerjaar)
+  const niveauGroep = getNiveauGroep(niveau.schoolType)
+  const teksten = k2Teksten[niveauGroep]
 
   // Handlers
   const handleKiesOpdracht = (opdracht: OpdrachtOptie) => {
     setGekozenOpdracht(opdracht)
+    setPhase('voorbeeld')
+  }
+
+  const handleVoorbeeldNaarOnderdelen = () => {
     setPhase('onderdelen')
     // Reset chat met intro bericht
     setChatMessages([{
       role: 'assistant',
-      content: `Je hebt gekozen voor "${opdracht.titel}". Welke stappen denk je dat je moet zetten om dit te maken? Typ je ideeën, of vraag mij om suggesties!`
+      content: `Je hebt gekozen voor "${gekozenOpdracht?.titel}". Welke stappen denk je dat je moet zetten om dit te maken? Typ je ideeën, of vraag mij om suggesties!`
     }])
   }
 
@@ -427,14 +435,14 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                 <h1 className="text-xl font-bold text-gray-900">Taak-Ontleder</h1>
               </div>
               <p className="text-gray-600">
-                Je gaat een opdracht opsplitsen in stappen en per stap bepalen: doe ik dit zelf, samen met AI, of laat ik AI het doen?
+                {teksten.introTekst}
               </p>
             </div>
 
             {/* Uitleg */}
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
               <p className="text-sm text-gray-700">
-                <strong>Hoe werkt het?</strong> Kies eerst een opdracht. Daarna bedenk je welke stappen nodig zijn en kies je per stap je aanpak.
+                <strong>Hoe werkt het?</strong> {teksten.hoeWerktHet}
               </p>
             </div>
 
@@ -456,6 +464,69 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                 </button>
               ))}
             </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  // ============ FASE 1B: VOORBEELD ============
+  if (phase === 'voorbeeld') {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
+        <main className="flex-1 py-8">
+          <div className="container mx-auto px-4 max-w-2xl">
+            <button
+              onClick={() => { setGekozenOpdracht(null); setPhase('kiezen') }}
+              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Andere opdracht
+            </button>
+
+            <div className="mb-4">
+              <h1 className="text-xl font-bold text-gray-900 mb-1">{teksten.voorbeeldTitel}</h1>
+              <p className="text-sm text-gray-500">
+                Je gekozen opdracht: <span className="font-medium text-gray-700">{gekozenOpdracht?.titel}</span>
+              </p>
+            </div>
+
+            <p className="text-gray-600 mb-5">
+              {teksten.voorbeeldInleiding}
+            </p>
+
+            {/* Voorbeeld stappen */}
+            <div className="bg-white rounded-xl border shadow-sm p-4 mb-5">
+              <div className="space-y-2">
+                {teksten.voorbeeldStappen.map((stap, index) => (
+                  <div key={index} className="flex items-center gap-3 py-1.5">
+                    <span
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                      style={{ backgroundColor: kiesKleuren.kiezen }}
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="text-sm text-gray-700">{stap}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-gray-600 mb-6">
+              {teksten.voorbeeldAfsluiting}
+            </p>
+
+            <Button
+              onClick={handleVoorbeeldNaarOnderdelen}
+              size="lg"
+              className="w-full"
+            >
+              Aan de slag
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </main>
         <Footer />
@@ -487,7 +558,7 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
                 >
                   K2
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Stap 1: Opdeling</h1>
+                <h1 className="text-xl font-bold text-gray-900">{teksten.stap1Titel}</h1>
               </div>
               <p className="text-gray-600">
                 <span className="font-medium">{gekozenOpdracht?.titel}</span>
@@ -563,21 +634,22 @@ De leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stap
               <span className="text-sm font-medium text-primary">Hulp nodig? Vraag de AI om suggesties</span>
             </button>
 
-            <Button
-              onClick={() => setPhase('aanpak')}
-              disabled={stappen.length < 2}
-              size="lg"
-              className="w-full"
-            >
-              {stappen.length < 2 ? (
-                'Voeg minimaal 2 stappen toe'
-              ) : (
-                <>
-                  Volgende: Aanpak kiezen
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
+            <div>
+              <Button
+                onClick={() => setPhase('aanpak')}
+                disabled={stappen.length < 2}
+                size="lg"
+                className="w-full"
+              >
+                Verder
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              {stappen.length < 2 && (
+                <p className="text-sm text-gray-400 text-center mt-2">
+                  Voeg minstens 2 stappen toe om verder te gaan
+                </p>
               )}
-            </Button>
+            </div>
           </div>
         </main>
         <Footer />
