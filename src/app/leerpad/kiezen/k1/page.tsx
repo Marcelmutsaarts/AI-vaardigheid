@@ -7,7 +7,7 @@ import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Loader2, ChevronUp } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import ProgressStepper from '@/components/navigation/ProgressStepper'
 import {
@@ -222,13 +222,6 @@ export default function K1Page() {
             ))}
           </div>
 
-          {/* Inline bevestiging voor "Zelf" */}
-          {selfClicked && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-center text-sm text-gray-600 animate-fadeIn">
-              Goed om te weten — soms is zelf doen de beste keuze!
-            </div>
-          )}
-
           {/* Instructietekst */}
           {expandedCategories.size === 0 && !selfClicked && (
             <p className="text-sm text-gray-500 text-center mb-6 italic">
@@ -357,8 +350,17 @@ function DrieluikCard({
       <h2 className="font-bold text-gray-900 text-lg">{category.titel}</h2>
       <p className="text-sm text-gray-500 mt-1">{category.subtitel}</p>
       {category.expandable && (
-        <p className="text-xs text-primary font-medium mt-2">
-          {isExpanded ? 'Inklappen' : 'Ontdek \u2192'}
+        <div className="flex justify-center mt-2">
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4 text-primary" />
+          ) : (
+            <span className="text-xs text-primary font-medium">Ontdek {'\u2192'}</span>
+          )}
+        </div>
+      )}
+      {isZelf && selfClicked && (
+        <p className="text-xs text-gray-500 mt-2 animate-fadeIn">
+          Soms is zelf doen de beste keuze!
         </p>
       )}
     </button>
@@ -404,27 +406,28 @@ function RolesSection({
 
   return (
     <div className="mb-6 animate-slideDown">
-      {/* Categorie intro */}
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
-        <p className="text-sm text-gray-700 font-medium">{introTekst}</p>
+      {/* Rollen container met categorie-intro */}
+      <div className="bg-gray-50 rounded-xl p-4">
+        {/* Categorie intro */}
+        <p className="text-sm text-gray-700 font-medium mb-4">{introTekst}</p>
+
+        {/* Rollen grid */}
+        <div className="grid sm:grid-cols-2 gap-3">
+          {roles.map((role) => (
+            <RoleCard
+              key={role.id}
+              role={role}
+              isActive={activeRole === role.id}
+              isTried={triedRoles.includes(role.id)}
+              onClick={() => onRoleClick(role.id)}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Rollen grid */}
-      <div className="grid sm:grid-cols-2 gap-3 mb-4">
-        {roles.map((role) => (
-          <RoleCard
-            key={role.id}
-            role={role}
-            isActive={activeRole === role.id}
-            isTried={triedRoles.includes(role.id)}
-            onClick={() => onRoleClick(role.id)}
-          />
-        ))}
-      </div>
-
-      {/* Active role interaction */}
+      {/* Active role interaction (outside container for visual separation) */}
       {activeRoleInThisSection && (
-        <div ref={roleInteractionRef}>
+        <div ref={roleInteractionRef} className="mt-4">
           <RoleInteraction
             role={activeRoleInThisSection}
             niveauGroep={niveauGroep}
@@ -458,7 +461,9 @@ function RoleCard({
   return (
     <button
       onClick={onClick}
-      className={`relative bg-white rounded-xl border-2 p-4 text-left transition-all duration-200 hover:shadow-md ${
+      className={`relative rounded-xl border-2 p-4 text-left transition-all duration-200 hover:shadow-md ${
+        isTried ? 'bg-purple-50' : 'bg-white'
+      } ${
         isActive
           ? 'border-[#a15df5] ring-1 ring-[#a15df5]/20 shadow-md'
           : 'border-gray-200'
@@ -467,12 +472,7 @@ function RoleCard({
       <div className="flex items-center gap-3">
         <span className="text-2xl">{role.emoji}</span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-900">{role.titel}</span>
-            {isTried && (
-              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500" />
-            )}
-          </div>
+          <span className="font-semibold text-gray-900">{role.titel}</span>
           <p className="text-xs text-gray-500 mt-0.5">{role.tagline}</p>
         </div>
       </div>
