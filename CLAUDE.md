@@ -57,7 +57,7 @@ Gebaseerd op Mollick & Mollick (2023) "Assigning AI: Seven Approaches for Studen
 ### K-module structuur
 - K1: Drie manieren om AI te gebruiken (twee-fasen flow: drieluik + rollen)
 - K1→K2 transitie: Voorbeeld "presentatie maken" met niveau-afhankelijke stappen
-- K2: Taak-Ontleder (kernoefening + experimenteren)
+- K2: Taak-Ontleder — één twee-kolom scherm met twee fases + experimenteren
 
 ### K1 Twee-fasen flow
 **Fase 1 (drieluik)**: Drie kaarten: Zelf (✋), Samen met AI (🤝), AI doet het (🤖)
@@ -76,10 +76,26 @@ Gebaseerd op Mollick & Mollick (2023) "Assigning AI: Seven Approaches for Studen
 - Voorbeeld "Een presentatie maken" met niveau-afhankelijke stappen (4 voor VMBO, 5 voor HAVO/VWO)
 - Data: `k2VoorbeeldPerNiveau` in `src/lib/kiezen-content.ts`
 
-### K2 Opdelen-scherm
-- Samengevoegde opdrachtkaart (purple-50): opdrachtnaam + niveau-afhankelijke instructie
-- Instructieteksten in `k2Teksten.opdelenInstructie` per niveaugroep
-- Disabled "Verder →" knop met subtiele grijze hint (geen rode foutmelding)
+### K2 Twee-kolom layout (twee fases)
+Eén scherm met twee fases die de rechterkolom transformeren:
+
+**Fase 1 — Stappen invoeren** (`phase: 'kiezen'`):
+- Links (40%): opdrachtkaarten met selectie-state (paarse rand + vinkje)
+- Rechts (60%): invoervelden (5 standaard, max 8), disabled tot opdracht gekozen
+- Bevestigingsdialoog bij wisselen opdracht, Enter-navigatie, auto-scroll mobiel
+
+**Fase 2 — Aanpak kiezen** (`phase: 'aanpak'`):
+- Links (40%): opdrachten locked (opacity-60) + legenda (Zelf/Samen/AI doet uitleg)
+- Rechts (60%): stap-kaarten met drie chips per stap (✋ Zelf, 🤝 Samen ▾, 🤖 AI doet ▾)
+- Klik op Samen/AI doet → roldropdown klapt open met 4 rollen + emoji + beschrijving
+- Na rolkeuze → gecombineerde chip ("🤝 Samen → 💡 Brainstormer") met ✕ reset
+- Klik op Zelf → direct actief (paarse chip), geen dropdown nodig
+- "← Stappen aanpassen" terug naar fase 1, keuzes worden onthouden
+- "Verder →" disabled tot alle stappen een aanpak hebben
+- Niveau-afhankelijke instructietekst (`aanpakInstructie` in k2Teksten)
+
+**Component**: `src/components/k2/StepApproachChips.tsx`
+- Phase type: `'kiezen' | 'aanpak' | 'resultaat' | 'experimenteren'`
 - Data: `k2Teksten` in `src/lib/kiezen-content.ts`
 
 ### Opdrachten per niveau
