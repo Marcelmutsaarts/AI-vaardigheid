@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft, ChevronDown, Plus, X, MessageCircle, Send, Loader2, CheckCircle2 } from 'lucide-react'
+import StepApproachChips from '@/components/k2/StepApproachChips'
 import { kiesKleuren } from '@/lib/utils'
 import {
   getOpdrachtenVoorNiveau,
@@ -298,6 +299,12 @@ export default function K2Page() {
     setOpenDropdown(null)
   }
 
+  const handleResetAanpak = (stapId: string) => {
+    setStappen(prev => prev.map(s =>
+      s.id === stapId ? { ...s, aanpak: null, rol: undefined } : s
+    ))
+  }
+
   const handleFinish = () => {
     updateProgress('kiezen', 'k2', true)
     setWilVerbeteren(false)
@@ -399,19 +406,6 @@ export default function K2Page() {
     if (aanpak === 'aihelpt' && rolId) return aiHelptRollen.find(r => r.id === rolId)
     if (aanpak === 'aidoet' && rolId) return aiDoetRollen.find(r => r.id === rolId)
     return null
-  }
-
-  const getGekozenAiHelptRollen = (stapTitel: string): string[] => {
-    return stappen.filter(s => s.titel === stapTitel && s.aanpak === 'aihelpt' && s.rol).map(s => s.rol!)
-  }
-
-  const handleVoegExtraRolToe = (stapId: string, rolId: string) => {
-    const huidigeStap = stappen.find(s => s.id === stapId)
-    if (!huidigeStap) return
-    const nieuw: Stap = { id: `${stapId}-${Date.now()}`, titel: huidigeStap.titel, aanpak: 'aihelpt', rol: rolId }
-    const index = stappen.findIndex(s => s.id === stapId)
-    setStappen(prev => [...prev.slice(0, index + 1), nieuw, ...prev.slice(index + 1)])
-    setOpenDropdown(null)
   }
 
   // ============ FASE 1: TWEE-KOLOM LAYOUT ============
@@ -682,192 +676,153 @@ export default function K2Page() {
     )
   }
 
-  // ============ FASE 2: AANPAK KIEZEN ============
+  // ============ FASE 2: AANPAK KIEZEN (geïntegreerd in twee-kolom layout) ============
   if (phase === 'aanpak') {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
         <ProgressStepper activeLetter="kiezen" activeSubStep="k2" />
-        <main className="flex-1 py-8">
-          <div className="container mx-auto px-4 max-w-2xl">
-            <button
-              onClick={handleBackToKiezen}
-              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
+        <main className="flex-1 py-6">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <Link
+              href="/leerpad/kiezen/k1"
+              className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Stappen aanpassen
-            </button>
+              Drie manieren
+            </Link>
 
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: kiesKleuren.kiezen }}
-                >
-                  K2
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">Stap 2: Aanpak kiezen</h1>
+            <div className="flex items-center gap-3 mb-5">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                style={{ backgroundColor: kiesKleuren.kiezen }}
+              >
+                K2
               </div>
-              <p className="text-gray-600">
-                <span className="font-medium">{gekozenOpdracht?.titel}</span>
-              </p>
+              <h1 className="text-xl font-bold text-gray-900">Taak-Ontleder</h1>
             </div>
 
-            {/* Uitleg */}
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
-              <p className="text-sm text-gray-700 mb-2">
-                Kies per stap hoe je die gaat aanpakken:
-              </p>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="bg-white rounded-lg p-2 text-center">
-                  <span className="text-lg">👤</span>
-                  <div className="font-medium text-gray-900">Zelf</div>
-                  <div className="text-gray-500">Zonder AI</div>
+            {/* Twee-kolom layout */}
+            <div className="flex flex-col md:flex-row gap-5">
+              {/* Linkerkolom — Locked opdrachten + legenda */}
+              <div className="w-full md:w-[40%] flex-shrink-0">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Kies een opdracht</h2>
+                <div className="space-y-2 opacity-60 pointer-events-none">
+                  {opdrachten.map(opdracht => {
+                    const isSelected = gekozenOpdracht?.id === opdracht.id
+                    return (
+                      <div
+                        key={opdracht.id}
+                        className={`w-full rounded-xl border-2 p-3 flex items-center gap-3 ${
+                          isSelected
+                            ? 'border-purple-400 bg-purple-50'
+                            : 'border-transparent bg-white shadow-sm'
+                        }`}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-xl flex-shrink-0">
+                          {opdracht.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-sm">{opdracht.titel}</h3>
+                          <p className="text-xs text-gray-500 truncate">{opdracht.beschrijving}</p>
+                        </div>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-                <div className="bg-white rounded-lg p-2 text-center">
-                  <span className="text-lg">🤝</span>
-                  <div className="font-medium text-gray-900">Samen</div>
-                  <div className="text-gray-500">AI helpt mij</div>
-                </div>
-                <div className="bg-white rounded-lg p-2 text-center">
-                  <span className="text-lg">🤖</span>
-                  <div className="font-medium text-gray-900">AI doet</div>
-                  <div className="text-gray-500">AI maakt, ik check</div>
-                </div>
-              </div>
-            </div>
 
-            <div className="space-y-3 mb-6">
-              {stappen.map((stap, index) => (
-                <div key={stap.id} className="bg-white rounded-xl border shadow-sm p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-xs font-medium text-gray-600">
-                      {index + 1}
+                {/* Legenda */}
+                <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Aanpak kiezen</h3>
+                  <div className="space-y-2.5">
+                    <div className="flex items-start gap-2">
+                      <span className="text-base leading-5">✋</span>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Zelf</div>
+                        <div className="text-xs text-gray-500">Zonder AI</div>
+                      </div>
                     </div>
-                    <h3 className="font-medium text-gray-900">{stap.titel}</h3>
+                    <div className="flex items-start gap-2">
+                      <span className="text-base leading-5">🤝</span>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Samen</div>
+                        <div className="text-xs text-gray-500">AI helpt mij denken</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-base leading-5">🤖</span>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">AI doet</div>
+                        <div className="text-xs text-gray-500">AI maakt, ik check</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rechterkolom — Stap-kaarten met aanpak-chips */}
+              <div className="w-full md:w-[60%]">
+                <div className="animate-in fade-in duration-300">
+                  {/* Opdrachtkaart met aangepaste instructie */}
+                  <div className="bg-purple-50 rounded-xl p-5 mb-3">
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">{gekozenOpdracht?.titel}</h2>
+                    <p className="text-gray-600 text-sm">{teksten.aanpakInstructie}</p>
                   </div>
 
-                  <div className="flex gap-2 flex-wrap ml-9">
+                  {/* Stap-kaarten met chips */}
+                  <div className="space-y-3 mb-4">
+                    {stappen.map((stap, index) => (
+                      <StepApproachChips
+                        key={stap.id}
+                        stepNumber={index + 1}
+                        stepTitle={stap.titel}
+                        aanpak={stap.aanpak}
+                        rol={stap.rol}
+                        openDropdownId={openDropdown}
+                        stepId={stap.id}
+                        onSelect={(aanpak, rol) => handleSelectAanpak(stap.id, aanpak, rol)}
+                        onReset={() => handleResetAanpak(stap.id)}
+                        onOpenDropdown={setOpenDropdown}
+                        onCloseDropdown={() => setOpenDropdown(null)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Navigatie onderaan */}
+                  <div className="flex items-center justify-between">
                     <button
-                      onClick={() => handleSelectAanpak(stap.id, 'zelf')}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                        stap.aanpak === 'zelf'
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      onClick={handleBackToKiezen}
+                      className="inline-flex items-center text-sm text-gray-600 hover:text-primary"
                     >
-                      👤 Zelf
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      Stappen aanpassen
                     </button>
-
-                    <div className="relative">
-                      <button
-                        onClick={() => setOpenDropdown(openDropdown === `${stap.id}-aihelpt` ? null : `${stap.id}-aihelpt`)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
-                          stap.aanpak === 'aihelpt'
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                    <div className="text-right">
+                      <Button
+                        onClick={() => setPhase('resultaat')}
+                        disabled={!alleStappenIngevuld}
+                        size="lg"
                       >
-                        🤝 {stap.aanpak === 'aihelpt' && stap.rol ? getRolInfo('aihelpt', stap.rol)?.titel : 'Samen'}
-                        <ChevronDown className="h-3 w-3" />
-                      </button>
-                      {openDropdown === `${stap.id}-aihelpt` && (
-                        <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg py-1 z-20 min-w-[160px]">
-                          {aiHelptRollen.map(rol => (
-                            <button
-                              key={rol.id}
-                              onClick={() => handleSelectAanpak(stap.id, 'aihelpt', rol.id)}
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <span>{rol.emoji}</span>
-                              <span>{rol.titel}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="relative">
-                      <button
-                        onClick={() => setOpenDropdown(openDropdown === `${stap.id}-aidoet` ? null : `${stap.id}-aidoet`)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
-                          stap.aanpak === 'aidoet'
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        🤖 {stap.aanpak === 'aidoet' && stap.rol ? getRolInfo('aidoet', stap.rol)?.titel : 'AI doet'}
-                        <ChevronDown className="h-3 w-3" />
-                      </button>
-                      {openDropdown === `${stap.id}-aidoet` && (
-                        <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg py-1 z-20 min-w-[160px]">
-                          {aiDoetRollen.map(rol => (
-                            <button
-                              key={rol.id}
-                              onClick={() => handleSelectAanpak(stap.id, 'aidoet', rol.id)}
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <span>{rol.emoji}</span>
-                              <span>{rol.titel}</span>
-                            </button>
-                          ))}
-                        </div>
+                        Verder
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </Button>
+                      {!alleStappenIngevuld && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Kies voor elke stap een aanpak
+                        </p>
                       )}
                     </div>
                   </div>
-
-                  {/* + Nog een AI-helpt rol knop */}
-                  {stap.aanpak === 'aihelpt' && stap.rol && (
-                    (() => {
-                      const gekozenRollen = getGekozenAiHelptRollen(stap.titel)
-                      const beschikbareRollen = aiHelptRollen.filter(r => !gekozenRollen.includes(r.id))
-                      if (beschikbareRollen.length === 0) return null
-                      return (
-                        <div className="ml-9 mt-2 relative">
-                          <button
-                            onClick={() => setOpenDropdown(openDropdown === `${stap.id}-extra` ? null : `${stap.id}-extra`)}
-                            className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
-                          >
-                            <Plus className="h-3 w-3" />
-                            Nog een AI-helpt rol
-                          </button>
-                          {openDropdown === `${stap.id}-extra` && (
-                            <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg py-1 z-20 min-w-[160px]">
-                              {beschikbareRollen.map(rol => (
-                                <button
-                                  key={rol.id}
-                                  onClick={() => handleVoegExtraRolToe(stap.id, rol.id)}
-                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                                >
-                                  <span>{rol.emoji}</span>
-                                  <span>{rol.titel}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })()
-                  )}
                 </div>
-              ))}
+              </div>
             </div>
-
-            <Button
-              onClick={() => setPhase('resultaat')}
-              disabled={!alleStappenIngevuld}
-              size="lg"
-              className="w-full"
-            >
-              {alleStappenIngevuld ? (
-                <>
-                  Volgende: Inschatten
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
-              ) : (
-                'Kies voor elke stap een aanpak'
-              )}
-            </Button>
           </div>
         </main>
         <Footer />
