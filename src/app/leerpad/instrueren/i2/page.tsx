@@ -123,10 +123,10 @@ export default function I2Page() {
           </div>
 
           {/* Two-column layout */}
-          <div className="flex gap-8">
-            {/* Left column -- sticky */}
-            <div className="w-[35%] flex-shrink-0">
-              <div className="sticky top-24">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left column -- sticky on desktop */}
+            <div className="w-full lg:w-[35%] flex-shrink-0">
+              <div className="lg:sticky lg:top-24">
                 <RoleList
                   selectedRole={selectedRoleId}
                   completedRoles={completedRoles}

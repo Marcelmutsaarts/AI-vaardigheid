@@ -58,6 +58,7 @@ export default function PromptWorkspace({
   })
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[] | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackError, setFeedbackError] = useState(false)
   const [phase, setPhase] = useState<Phase>('building')
   const [testResult, setTestResult] = useState<string | null>(null)
   const [testLoading, setTestLoading] = useState(false)
@@ -79,6 +80,7 @@ export default function PromptWorkspace({
     setPromptInput({ rol: '', context: '', instructies: '', voorbeeld: '' })
     setFeedbackItems(null)
     setFeedbackLoading(false)
+    setFeedbackError(false)
     setPhase('building')
     setTestResult(null)
     setTestLoading(false)
@@ -120,6 +122,7 @@ export default function PromptWorkspace({
     setStreamingContent('')
     setFeedbackLoading(true)
     setFeedbackItems(null)
+    setFeedbackError(false)
 
     try {
       const response = await fetch('/api/chat', {
@@ -184,10 +187,14 @@ Regels voor feedback:
           }
         } catch (e) {
           console.error('Could not parse feedback:', e)
+          setFeedbackError(true)
         }
+      } else {
+        setFeedbackError(true)
       }
     } catch (error) {
       console.error('Feedback error:', error)
+      setFeedbackError(true)
     } finally {
       setFeedbackLoading(false)
     }
@@ -348,18 +355,30 @@ Regels voor feedback:
       </div>
 
       {/* ── "Vraag feedback" button ─────────────────────────────────────── */}
-      <Button
-        onClick={handleGetFeedback}
-        disabled={!canRequestFeedback || feedbackLoading}
-        className="w-full"
-      >
-        {feedbackLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        ) : (
-          <MessageSquare className="h-4 w-4 mr-2" />
+      <div>
+        <Button
+          onClick={handleGetFeedback}
+          disabled={!canRequestFeedback || feedbackLoading}
+          className="w-full"
+        >
+          {feedbackLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <MessageSquare className="h-4 w-4 mr-2" />
+          )}
+          {feedbackLoading ? 'Feedback ophalen...' : 'Vraag feedback'}
+        </Button>
+        {!canRequestFeedback && (
+          <p className="text-xs text-gray-400 text-center mt-2">
+            Vul minimaal Rol en Instructies in
+          </p>
         )}
-        {feedbackLoading ? 'Feedback ophalen...' : 'Vraag feedback'}
-      </Button>
+        {feedbackError && (
+          <p className="text-xs text-red-500 text-center mt-2">
+            Er ging iets mis bij het ophalen van feedback. Probeer het opnieuw.
+          </p>
+        )}
+      </div>
 
       {/* ── Phase 2: Feedback card ──────────────────────────────────────── */}
       {feedbackItems && (phase === 'feedback' || phase === 'testing' || phase === 'reflecting') && (
