@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Check, X, MessageSquare, Loader2, ArrowUp, Play } from 'lucide-react'
 import { promptOnderdelen, getOnderdeelLabel } from '@/lib/instrueren-content'
+import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +59,10 @@ export default function PromptWorkspace({
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[] | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [phase, setPhase] = useState<Phase>('building')
+  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testLoading, setTestLoading] = useState(false)
+  const [streamingContent, setStreamingContent] = useState('')
+  const [reflectionAnswer, setReflectionAnswer] = useState<'ja' | 'deels' | 'nee' | null>(null)
 
   // ── Refs for scroll-to-field ───────────────────────────────────────────
   const fieldRefs = {
@@ -67,6 +72,7 @@ export default function PromptWorkspace({
     voorbeeld: useRef<HTMLDivElement>(null),
   }
   const feedbackRef = useRef<HTMLDivElement>(null)
+  const testResultRef = useRef<HTMLDivElement>(null)
 
   // ── Reset on role change ───────────────────────────────────────────────
   useEffect(() => {
@@ -74,6 +80,10 @@ export default function PromptWorkspace({
     setFeedbackItems(null)
     setFeedbackLoading(false)
     setPhase('building')
+    setTestResult(null)
+    setTestLoading(false)
+    setStreamingContent('')
+    setReflectionAnswer(null)
   }, [role.id])
 
   // ── Dirty tracking ────────────────────────────────────────────────────
@@ -105,6 +115,9 @@ export default function PromptWorkspace({
   const handleGetFeedback = async () => {
     if (!canRequestFeedback) return
 
+    setTestResult(null)
+    setReflectionAnswer(null)
+    setStreamingContent('')
     setFeedbackLoading(true)
     setFeedbackItems(null)
 
@@ -190,9 +203,86 @@ Regels voor feedback:
     fieldRefs.rol.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  // ── Handle "Prompt testen" (placeholder for Wave 3) ────────────────────
-  const handleTestPrompt = () => {
+  // ── Handle "Prompt testen" ─────────────────────────────────────────────
+  const handleTestPrompt = async () => {
+    setTestLoading(true)
+    setTestResult(null)
+    setStreamingContent('')
+    setReflectionAnswer(null)
     setPhase('testing')
+
+    // Scroll to test result area
+    setTimeout(() => {
+      testResultRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+
+    try {
+      // Build the full prompt from the 4 fields
+      let volledigePrompt = ''
+      if (promptInput.rol.trim()) volledigePrompt += promptInput.rol.trim()
+      if (promptInput.context.trim()) volledigePrompt += '\n\n' + promptInput.context.trim()
+      if (promptInput.instructies.trim()) volledigePrompt += '\n\n' + promptInput.instructies.trim()
+      if (promptInput.voorbeeld.trim()) volledigePrompt += '\n\n' + promptInput.voorbeeld.trim()
+      volledigePrompt = volledigePrompt.trim()
+
+      const response = await fetch('/api/chat-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: volledigePrompt,
+          context: {
+            niveau: niveau,
+            leerjaar: leerjaar,
+            currentModule: 'instrueren',
+            moduleContext: 'De leerling test een zelfgeschreven prompt. Voer de instructies uit zoals gevraagd.',
+            aiMode: 'doet'
+          }
+        })
+      })
+
+      if (!response.ok) throw new Error('API error')
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader')
+
+      const decoder = new TextDecoder()
+      let fullContent = ''
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.content) {
+                fullContent += data.content
+                setStreamingContent(fullContent)
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      if (fullContent) {
+        setTestResult(fullContent)
+      }
+    } catch (error) {
+      console.error('Test error:', error)
+      setTestResult('Er ging iets mis. Probeer het opnieuw.')
+    } finally {
+      setTestLoading(false)
+      setStreamingContent('')
+      setPhase('reflecting')
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -272,7 +362,7 @@ Regels voor feedback:
       </Button>
 
       {/* ── Phase 2: Feedback card ──────────────────────────────────────── */}
-      {feedbackItems && phase !== 'building' && (
+      {feedbackItems && (phase === 'feedback' || phase === 'testing' || phase === 'reflecting') && (
         <div ref={feedbackRef} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-100 bg-gray-50">
             <h3 className="font-semibold text-gray-900">Feedback op je prompt</h3>
@@ -333,11 +423,106 @@ Regels voor feedback:
         </div>
       )}
 
-      {/* ── Phase 3 placeholder (testing) — will be replaced in Wave 3 ── */}
-      {phase === 'testing' && (
-        <div className="bg-gray-50 rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-400">
-          <Play className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-          Prompt testen wordt hier toegevoegd (Wave 3)
+      {/* ── Phase 3: Test Result ─────────────────────────────────────── */}
+      {(phase === 'testing' || phase === 'reflecting') && (
+        <div ref={testResultRef} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100 bg-gray-50">
+            <h3 className="font-semibold text-gray-900">Resultaat</h3>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {/* The composed prompt */}
+            <div>
+              <span className="text-xs text-gray-400">(Je prompt)</span>
+              <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap mt-1">
+                {[
+                  promptInput.rol.trim(),
+                  promptInput.context.trim(),
+                  promptInput.instructies.trim(),
+                  promptInput.voorbeeld.trim(),
+                ]
+                  .filter(Boolean)
+                  .join('\n\n')}
+              </div>
+            </div>
+
+            {/* The AI answer */}
+            <div>
+              <span className="text-xs text-gray-400">(AI-antwoord)</span>
+              <div className="bg-white rounded-lg border p-4 mt-1">
+                {testLoading && !streamingContent && (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                  </div>
+                )}
+                {(streamingContent || testResult) && (
+                  <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {formatMarkdownWithNewlines(testResult || streamingContent)}
+                    {testLoading && streamingContent && (
+                      <span className="inline-block w-1.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Phase 4: Reflection ───────────────────────────────────────── */}
+      {phase === 'reflecting' && testResult && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-4 space-y-4">
+            <h3 className="font-semibold text-gray-900">Kreeg je wat je verwachtte?</h3>
+
+            {/* Choice buttons */}
+            <div className="flex gap-3">
+              {([
+                { value: 'ja' as const, label: '\uD83D\uDC4D Ja' },
+                { value: 'deels' as const, label: '\uD83E\uDD14 Deels' },
+                { value: 'nee' as const, label: '\uD83D\uDC4E Nee' },
+              ]).map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setReflectionAnswer(option.value)
+                    if (option.value === 'ja') {
+                      onComplete()
+                    }
+                  }}
+                  className={`rounded-full px-4 py-2 text-sm border transition-all ${
+                    reflectionAnswer === option.value
+                      ? 'bg-purple-100 border-purple-500 text-purple-700 font-medium'
+                      : 'bg-white border-gray-200 hover:border-purple-300'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Response text */}
+            {reflectionAnswer === 'ja' && (
+              <div className="bg-green-50 rounded-lg p-3 text-green-700 text-sm">
+                Goed gedaan! Kies een andere rol om meer te oefenen, of ga verder.
+              </div>
+            )}
+            {(reflectionAnswer === 'deels' || reflectionAnswer === 'nee') && (
+              <div className="space-y-3">
+                <div className="bg-amber-50 rounded-lg p-3 text-amber-700 text-sm">
+                  Pas je prompt aan en probeer opnieuw.
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={scrollToTop}
+                  className="w-full"
+                >
+                  <ArrowUp className="h-4 w-4 mr-2" />
+                  Prompt aanpassen
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
