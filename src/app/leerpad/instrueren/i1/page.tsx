@@ -1,73 +1,35 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
-import { promptOnderdelen, getOnderdeelLabel } from '@/lib/instrueren-content'
 import ProgressStepper from '@/components/navigation/ProgressStepper'
-
-// Voorbeeld prompt generator - past zich aan op niveau
-const getVoorbeeldPrompt = (schoolType: string, leerjaar: number) => ({
-  rol: 'Je bent een vriendelijke docent Nederlands die goed kan uitleggen.',
-  context: `Ik zit in ${leerjaar} ${schoolType.toUpperCase()} en werk aan een betoog over social media. Het moet 500 woorden zijn en ik moet minstens 2 bronnen gebruiken.`,
-  instructies: 'Geef me feedback op mijn inleiding. Let vooral op: is de stelling duidelijk? Trek ik de aandacht van de lezer? Geef 3 concrete tips om het te verbeteren.',
-  voorbeeld: 'Geef je feedback in dit format:\n- Wat gaat goed: ...\n- Tip 1: ...\n- Tip 2: ...\n- Tip 3: ...',
-})
+import PromptExplorer from '@/components/i1/PromptExplorer'
 
 export default function I1Page() {
   const router = useRouter()
   const { niveau, updateProgress } = useNiveau()
-  const [expandedOnderdeel, setExpandedOnderdeel] = useState<string | null>(null)
-  const [bekendeOnderdelen, setBekendeOnderdelen] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    // MBO/HBO hebben geen leerjaar, VO niveaus wel
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
     }
   }, [niveau, router])
 
-  // MBO/HBO hebben geen leerjaar, VO niveaus wel
   const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
   if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
     return null
   }
 
-  const handleToggleOnderdeel = (id: string) => {
-    if (expandedOnderdeel === id) {
-      setExpandedOnderdeel(null)
-    } else {
-      setExpandedOnderdeel(id)
-      // Markeer als bekeken
-      setBekendeOnderdelen(prev => {
-        const newSet = new Set(prev)
-        newSet.add(id)
-        return newSet
-      })
-    }
-  }
-
   const handleComplete = () => {
     updateProgress('instrueren', 'i1', true)
     router.push('/leerpad/instrueren/i2')
-  }
-
-  // Check of alle verplichte onderdelen zijn bekeken
-  const verplichtBekeken = promptOnderdelen
-    .filter(o => o.verplicht)
-    .every(o => bekendeOnderdelen.has(o.id))
-
-  const voorbeeldPrompt = getVoorbeeldPrompt(niveau.schoolType!, niveau.leerjaar!)
-
-  const getVoorbeeldTekst = (id: string) => {
-    return voorbeeldPrompt[id as keyof typeof voorbeeldPrompt] || ''
   }
 
   return (
@@ -76,7 +38,7 @@ export default function I1Page() {
       <ProgressStepper activeLetter="instrueren" activeSubStep="i1" />
 
       <main className="flex-1 py-8">
-        <div className="container mx-auto px-4 max-w-2xl">
+        <div className="container mx-auto px-4 max-w-5xl">
           {/* Terug link */}
           <Link
             href="/leerpad/instrueren"
@@ -97,128 +59,13 @@ export default function I1Page() {
               </div>
               <h1 className="text-xl font-bold text-gray-900">Hoe bouw je een prompt?</h1>
             </div>
-            <p className="text-gray-600">
-              Een goede prompt heeft 4 onderdelen. Klik op elk onderdeel om te leren wat het is.
-            </p>
           </div>
 
-          {/* Intro card */}
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-xl p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <Lightbulb className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-purple-900">
-                  <strong>Waarom is dit belangrijk?</strong><br />
-                  Hoe beter je prompt, hoe beter het antwoord.
-                  Een vage vraag geeft een vaag antwoord. Een specifieke vraag geeft een specifiek antwoord.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* De 4 onderdelen */}
-          <div className="space-y-3 mb-6">
-            {promptOnderdelen.map((onderdeel) => {
-              const isExpanded = expandedOnderdeel === onderdeel.id
-              const isBekend = bekendeOnderdelen.has(onderdeel.id)
-              const labels = getOnderdeelLabel(onderdeel, niveau.schoolType!)
-
-              return (
-                <div
-                  key={onderdeel.id}
-                  className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-all ${
-                    isBekend ? 'border-green-200' : ''
-                  }`}
-                >
-                  <button
-                    onClick={() => handleToggleOnderdeel(onderdeel.id)}
-                    className="w-full p-4 flex items-center gap-3 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-                        isBekend ? 'bg-green-500' : ''
-                      }`}
-                      style={{ backgroundColor: isBekend ? undefined : kiesKleuren.instrueren }}
-                    >
-                      {onderdeel.nummer}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900">{onderdeel.titel}</h3>
-                        {!onderdeel.verplicht && (
-                          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                            optioneel
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500">{labels.vraag}</p>
-                    </div>
-                    {isExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
-                    )}
-                  </button>
-
-                  {isExpanded && (
-                    <div className="px-4 pb-4 border-t bg-gray-50">
-                      <div className="pt-4 space-y-3">
-                        {/* Uitleg */}
-                        <p className="text-sm text-gray-700">{onderdeel.uitleg}</p>
-
-                        {/* Voorbeeld */}
-                        <div className="bg-purple-50 border border-purple-100 rounded-lg p-3">
-                          <p className="text-sm text-purple-900 font-mono whitespace-pre-wrap">
-                            {getVoorbeeldTekst(onderdeel.id)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Complete prompt voorbeeld */}
-          <div className="bg-white rounded-xl border shadow-sm p-4 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-3">De complete prompt</h3>
-            <div className="space-y-3">
-              <div className="bg-purple-50 border-l-4 border-purple-400 p-3 rounded-r-lg">
-                <span className="text-xs font-medium text-purple-600 block mb-1">1. Rol</span>
-                <p className="text-sm text-gray-700">{voorbeeldPrompt.rol}</p>
-              </div>
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
-                <span className="text-xs font-medium text-blue-600 block mb-1">2. Context</span>
-                <p className="text-sm text-gray-700">{voorbeeldPrompt.context}</p>
-              </div>
-              <div className="bg-green-50 border-l-4 border-green-400 p-3 rounded-r-lg">
-                <span className="text-xs font-medium text-green-600 block mb-1">3. Instructies</span>
-                <p className="text-sm text-gray-700">{voorbeeldPrompt.instructies}</p>
-              </div>
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-lg">
-                <span className="text-xs font-medium text-yellow-600 block mb-1">4. Voorbeeld</span>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{voorbeeldPrompt.voorbeeld}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Volgende stap */}
-          <Button
-            onClick={handleComplete}
-            disabled={!verplichtBekeken}
-            size="lg"
-            className="w-full"
-          >
-            {verplichtBekeken ? (
-              <>
-                Nu zelf oefenen
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </>
-            ) : (
-              'Bekijk eerst alle onderdelen'
-            )}
-          </Button>
+          {/* PromptExplorer - interactieve twee-kolom layout */}
+          <PromptExplorer
+            schoolType={niveau.schoolType!}
+            onComplete={handleComplete}
+          />
         </div>
       </main>
 
