@@ -35,11 +35,11 @@ export const partColors = {
     border: 'border-green-200',
   },
   voorbeeld: {
-    hover: 'bg-yellow-50',
-    discovered: 'bg-yellow-50',
-    active: 'bg-yellow-100',
-    label: 'text-yellow-600',
-    border: 'border-yellow-200',
+    hover: 'bg-orange-50',
+    discovered: 'bg-orange-50',
+    active: 'bg-orange-100',
+    label: 'text-orange-600',
+    border: 'border-orange-200',
   },
 }
 

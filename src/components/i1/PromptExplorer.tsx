@@ -59,10 +59,13 @@ export default function PromptExplorer({ schoolType, onComplete }: PromptExplore
     return base
   }
 
-  // Active part info for right column
-  const activePartInfo = activePart ? promptParts.find(p => p.id === activePart) : null
-  const activeExplanation = activePart ? getPartExplanation(activePart, schoolType) : null
-  const activeColors = activePart ? partColors[activePart as keyof typeof partColors] : null
+  // Discovered parts in discovery order for right column stacking
+  const [discoveryOrder, setDiscoveryOrder] = useState<string[]>([])
+
+  const handlePartClickWrapped = useCallback((partId: string) => {
+    handlePartClick(partId)
+    setDiscoveryOrder(prev => prev.includes(partId) ? prev : [...prev, partId])
+  }, [handlePartClick])
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -95,14 +98,14 @@ export default function PromptExplorer({ schoolType, onComplete }: PromptExplore
                     className={getPartClassName(part.id)}
                     onMouseEnter={() => setHoveredPart(part.id)}
                     onMouseLeave={() => setHoveredPart(null)}
-                    onClick={() => handlePartClick(part.id)}
+                    onClick={() => handlePartClickWrapped(part.id)}
                     role="button"
                     tabIndex={0}
                     aria-label={`Prompt onderdeel: ${part.titel}`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        handlePartClick(part.id)
+                        handlePartClickWrapped(part.id)
                       }
                     }}
                   >
@@ -137,20 +140,31 @@ export default function PromptExplorer({ schoolType, onComplete }: PromptExplore
         </Button>
       </div>
 
-      {/* Right column */}
-      <div className="lg:w-1/2 lg:sticky lg:top-8 lg:self-start" aria-live="polite">
-        {activePartInfo && activeExplanation && activeColors ? (
-          <div
-            key={activePart}
-            className="bg-white rounded-xl border border-gray-200 p-6 w-full"
-            style={{ animation: 'i1FadeIn 0.2s ease-out' }}
-          >
-            <div className={`text-lg font-bold ${activeColors.label} mb-1`}>
-              {circledNumbers[activePartInfo.nummer - 1]} {activePartInfo.titel}
-            </div>
-            <p className="text-gray-500 text-sm mb-3">{activeExplanation.ondertitel}</p>
-            <p className="text-gray-700 leading-relaxed">{activeExplanation.uitleg}</p>
-          </div>
+      {/* Right column — all discovered explanations stack */}
+      <div className="lg:w-1/2 space-y-3" aria-live="polite">
+        {discoveryOrder.length > 0 ? (
+          discoveryOrder.map((partId) => {
+            const partInfo = promptParts.find(p => p.id === partId)!
+            const explanation = getPartExplanation(partId, schoolType)
+            const colors = partColors[partId as keyof typeof partColors]
+            const isActive = activePart === partId
+
+            return (
+              <div
+                key={partId}
+                className={`bg-white rounded-xl border p-5 w-full transition-all duration-200 ${
+                  isActive ? 'border-gray-300 shadow-sm' : 'border-gray-100'
+                }`}
+                style={{ animation: 'i1FadeIn 0.2s ease-out' }}
+              >
+                <div className={`text-base font-bold ${colors.label} mb-0.5`}>
+                  {circledNumbers[partInfo.nummer - 1]} {partInfo.titel}
+                </div>
+                <p className="text-gray-500 text-xs mb-1.5">{explanation.ondertitel}</p>
+                <p className="text-gray-700 text-sm leading-relaxed">{explanation.uitleg}</p>
+              </div>
+            )
+          })
         ) : (
           <div className="bg-gray-50 rounded-xl border border-dashed border-gray-300 p-8 w-full flex items-center justify-center min-h-[140px]">
             <p className="text-gray-400 text-sm text-center">{hintText}</p>
