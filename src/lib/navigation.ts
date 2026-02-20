@@ -41,8 +41,7 @@ export const kiesStructuur: KiesLetter[] = [
     description: 'Klopt wat AI zegt?',
     color: '#814bc6', href: '/leerpad/evalueren',
     subSteps: [
-      { id: 'e1', title: 'Mens-AI-Mens', description: 'Hoe check je AI-output?', href: '/leerpad/evalueren/e1' },
-      { id: 'e2', title: 'Valkuilen herkennen', description: 'Waar gaat AI de mist in?', href: '/leerpad/evalueren/e2' },
+      { id: 'e1', title: 'Evalueren', description: 'Leer AI-output kritisch beoordelen', href: '/leerpad/evalueren' },
     ]
   },
   {

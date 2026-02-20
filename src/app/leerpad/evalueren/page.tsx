@@ -1,21 +1,27 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { ArrowLeft } from 'lucide-react'
-import { getLetterByKey, isSubStepAccessible } from '@/lib/navigation'
+import { kiesKleuren } from '@/lib/utils'
 import ProgressStepper from '@/components/navigation/ProgressStepper'
-import SubStepCard from '@/components/navigation/SubStepCard'
-import NextStepButton from '@/components/navigation/NextStepButton'
+import EvalSidebar from '@/components/e/EvalSidebar'
+import EvalWorkspace from '@/components/e/EvalWorkspace'
 
-export default function EvaluerenOverzicht() {
+export default function EvaluerenPage() {
   const router = useRouter()
-  const { niveau, progress } = useNiveau()
+  const { niveau, updateProgress } = useNiveau()
 
+  // ── State ─────────────────────────────────────────────────────────────────
+  const [interests, setInterests] = useState<string[]>([])
+  const [completedRounds, setCompletedRounds] = useState<Array<{ round: number; name: string; emoji: string }>>([])
+  const [activeRound, setActiveRound] = useState<number | null>(null)
+
+  // ── Niveau guard ──────────────────────────────────────────────────────────
   useEffect(() => {
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
@@ -28,26 +34,36 @@ export default function EvaluerenOverzicht() {
     return null
   }
 
-  const letter = getLetterByKey('evalueren')!
-
-  const getSubStepState = (subStepId: string, index: number): 'completed' | 'active' | 'locked' => {
-    const letterProgress = progress.evalueren as Record<string, boolean>
-    if (letterProgress[subStepId]) return 'completed'
-    const isFirst = letter.subSteps.findIndex(s => {
-      const lp = progress.evalueren as Record<string, boolean>
-      return !lp[s.id]
-    }) === index
-    if (isFirst && isSubStepAccessible(subStepId, progress)) return 'active'
-    return 'locked'
+  // ── Callbacks ─────────────────────────────────────────────────────────────
+  const handleInterestsSet = (newInterests: string[]) => {
+    setInterests(newInterests)
+    setActiveRound(1)
   }
 
+  const handleRoundComplete = (round: number, name: string, emoji: string) => {
+    setCompletedRounds(prev => [...prev, { round, name, emoji }])
+    setActiveRound(round < 3 ? round + 1 : null)
+  }
+
+  const handleModuleComplete = () => {
+    updateProgress('evalueren', 'e1', true)
+    updateProgress('evalueren', 'e2', true)
+    router.push('/leerpad/spelregels/s1')
+  }
+
+  const handleEditInterests = () => {
+    // Placeholder for future implementation
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <ProgressStepper activeLetter="evalueren" />
 
       <main className="flex-1 py-8">
-        <div className="container mx-auto px-4 max-w-2xl">
+        <div className="container mx-auto px-4 max-w-5xl">
+          {/* Back link */}
           <Link
             href="/dashboard"
             className="inline-flex items-center text-sm text-gray-600 hover:text-primary mb-6"
@@ -56,33 +72,49 @@ export default function EvaluerenOverzicht() {
             Dashboard
           </Link>
 
-          <div className="text-center mb-8">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4"
-              style={{ backgroundColor: letter.color }}
-            >
-              E
+          {/* Page header */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                style={{ backgroundColor: kiesKleuren.evalueren }}
+              >
+                E
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Evalueren</h1>
+                <p className="text-sm text-gray-500">
+                  Leer AI-output kritisch beoordelen
+                </p>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Evalueren</h1>
-            <p className="text-gray-600">
-              Leer AI-output kritisch beoordelen
-            </p>
           </div>
 
-          <div className="space-y-3 mb-8">
-            {letter.subSteps.map((subStep, index) => (
-              <SubStepCard
-                key={subStep.id}
-                subStep={subStep}
-                index={index}
-                letterColor={letter.color}
-                state={getSubStepState(subStep.id, index)}
+          {/* Two-column layout */}
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left column -- sticky on desktop */}
+            <div className="w-full lg:w-[35%] flex-shrink-0">
+              <div className="lg:sticky lg:top-24">
+                <EvalSidebar
+                  level={niveau.schoolType!}
+                  interests={interests}
+                  completedRounds={completedRounds}
+                  activeRound={activeRound}
+                  onEditInterests={handleEditInterests}
+                />
+              </div>
+            </div>
+
+            {/* Right column */}
+            <div className="flex-1 min-w-0">
+              <EvalWorkspace
+                level={niveau.schoolType!}
+                leerjaar={niveau.leerjaar}
+                onInterestsSet={handleInterestsSet}
+                onRoundComplete={handleRoundComplete}
+                onModuleComplete={handleModuleComplete}
               />
-            ))}
-          </div>
-
-          <div className="text-center">
-            <NextStepButton context="letter-overview" letterKey="evalueren" />
+            </div>
           </div>
         </div>
       </main>

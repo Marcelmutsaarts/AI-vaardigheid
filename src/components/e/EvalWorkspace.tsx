@@ -10,7 +10,7 @@ import SycophancyRound from '@/components/e/SycophancyRound'
 
 interface EvalWorkspaceProps {
   level: string
-  leerjaar?: string
+  leerjaar?: number | null
   onInterestsSet: (interests: string[]) => void
   onRoundComplete: (round: number, name: string, emoji: string) => void
   onModuleComplete: () => void

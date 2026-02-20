@@ -9,7 +9,7 @@ import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
 interface RoundProps {
   interests: string[]
   level: string
-  leerjaar?: string
+  leerjaar?: number | null
   onComplete: (result: { correct: boolean }) => void
 }
 

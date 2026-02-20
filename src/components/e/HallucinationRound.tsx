@@ -8,7 +8,7 @@ import { evalueerPrompts, aiValkuilen } from '@/lib/evalueren-content'
 interface RoundProps {
   interests: string[]
   level: string
-  leerjaar?: string
+  leerjaar?: number | null
   onComplete: (result: { correct: boolean }) => void
 }
 
