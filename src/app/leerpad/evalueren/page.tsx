@@ -51,10 +51,6 @@ export default function EvaluerenPage() {
     router.push('/leerpad/spelregels/s1')
   }
 
-  const handleEditInterests = () => {
-    // Placeholder for future implementation
-  }
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -100,7 +96,6 @@ export default function EvaluerenPage() {
                   interests={interests}
                   completedRounds={completedRounds}
                   activeRound={activeRound}
-                  onEditInterests={handleEditInterests}
                 />
               </div>
             </div>

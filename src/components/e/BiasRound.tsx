@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { evalueerPrompts, aiValkuilen } from '@/lib/evalueren-content'
+import { evalueerPrompts } from '@/lib/evalueren-content'
 import { formatMarkdownWithNewlines } from '@/lib/format-markdown'
 
 interface RoundProps {
@@ -13,7 +13,7 @@ interface RoundProps {
   onComplete: (result: { correct: boolean }) => void
 }
 
-type BiasStap = 'loading' | 'vraag' | 'hint' | 'invullen' | 'feedback'
+type BiasStap = 'loading' | 'error' | 'vraag' | 'hint' | 'invullen' | 'feedback'
 
 export default function BiasRound({ interests, level, leerjaar, onComplete }: RoundProps) {
   const [verhaal, setVerhaal] = useState('')
@@ -21,6 +21,7 @@ export default function BiasRound({ interests, level, leerjaar, onComplete }: Ro
   const [antwoord, setAntwoord] = useState('')
   const [feedback, setFeedback] = useState<{ correct: boolean; uitleg: string } | null>(null)
   const [checkLoading, setCheckLoading] = useState(false)
+  const [checkError, setCheckError] = useState(false)
 
   const callAI = async (prompt: string): Promise<string> => {
     const response = await fetch('/api/chat', {
@@ -56,6 +57,7 @@ export default function BiasRound({ interests, level, leerjaar, onComplete }: Ro
         }
       } catch (error) {
         console.error('Error generating bias story:', error)
+        if (!cancelled) setStap('error')
       }
     }
 
@@ -96,6 +98,7 @@ Geef je antwoord in EXACT dit JSON format:
       }
     } catch (error) {
       console.error('Error checking bias answer:', error)
+      setCheckError(true)
     } finally {
       setCheckLoading(false)
     }
@@ -107,6 +110,19 @@ Geef je antwoord in EXACT dit JSON format:
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-3" />
         <p className="text-sm text-gray-500">Verhaal wordt gegenereerd...</p>
+      </div>
+    )
+  }
+
+  // Error state
+  if (stap === 'error') {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-3">
+        <XCircle className="h-8 w-8 text-red-400" />
+        <p className="text-sm text-gray-600">Er ging iets mis bij het genereren. Probeer het opnieuw.</p>
+        <Button onClick={() => { setStap('loading'); window.location.reload() }} variant="outline">
+          Opnieuw proberen
+        </Button>
       </div>
     )
   }
@@ -186,8 +202,11 @@ Geef je antwoord in EXACT dit JSON format:
             rows={3}
             className="w-full px-3 py-2 border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary mb-3"
           />
+          {checkError && (
+            <p className="text-sm text-red-600 mb-2">Er ging iets mis. Probeer het opnieuw.</p>
+          )}
           <Button
-            onClick={handleCheck}
+            onClick={() => { setCheckError(false); handleCheck() }}
             disabled={!antwoord.trim() || checkLoading}
             size="lg"
             className="w-full"

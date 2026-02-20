@@ -77,7 +77,6 @@ export default function EvalWorkspace({
   const [phase, setPhase] = useState<Phase>('interests')
   const [interests, setInterests] = useState<string[]>([])
   const [interesseInput, setInteresseInput] = useState('')
-  const [roundResults, setRoundResults] = useState<Map<number, { correct: boolean }>>(new Map())
   const [revealVisible, setRevealVisible] = useState(false)
 
   // Reset reveal animation when entering a reveal phase
@@ -101,12 +100,7 @@ export default function EvalWorkspace({
   }
 
   const handleRoundExerciseComplete = useCallback((roundNum: 1 | 2 | 3) => {
-    return (result: { correct: boolean }) => {
-      setRoundResults(prev => {
-        const next = new Map(prev)
-        next.set(roundNum, result)
-        return next
-      })
+    return () => {
       setPhase(`round${roundNum}-reveal` as Phase)
     }
   }, [])

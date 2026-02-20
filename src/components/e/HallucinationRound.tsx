@@ -24,6 +24,7 @@ export default function HallucinationRound({ interests, level, leerjaar, onCompl
   const [gekozenFeit, setGekozenFeit] = useState<number | null>(null)
   const [feedbackGetoond, setFeedbackGetoond] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   const hallucinatieValkuil = aiValkuilen[1]
 
@@ -60,16 +61,17 @@ export default function HallucinationRound({ interests, level, leerjaar, onCompl
           const jsonMatch = response.match(/\{[\s\S]*\}/)
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0])
-            // Shuffle facts so the fake one isn't always at position 3
             const shuffled = [...parsed.feiten].sort(() => Math.random() - 0.5)
             setFeiten(shuffled)
             setFeitenUitleg(parsed.uitleg || '')
+          } else {
+            setError(true)
           }
           setLoading(false)
         }
       } catch (error) {
         console.error('Error generating facts:', error)
-        if (!cancelled) setLoading(false)
+        if (!cancelled) { setError(true); setLoading(false) }
       }
     }
 
@@ -90,6 +92,19 @@ export default function HallucinationRound({ interests, level, leerjaar, onCompl
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-3" />
         <p className="text-sm text-gray-500">Feiten worden gegenereerd...</p>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || feiten.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-3">
+        <XCircle className="h-8 w-8 text-red-400" />
+        <p className="text-sm text-gray-600">Er ging iets mis bij het genereren. Probeer het opnieuw.</p>
+        <Button onClick={() => window.location.reload()} variant="outline">
+          Opnieuw proberen
+        </Button>
       </div>
     )
   }

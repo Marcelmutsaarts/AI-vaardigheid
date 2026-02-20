@@ -25,6 +25,7 @@ export default function SycophancyRound({ interests, level, leerjaar, onComplete
   const [loading, setLoading] = useState(false)
   const [gekozen, setGekozen] = useState<string | null>(null)
   const [feedbackGetoond, setFeedbackGetoond] = useState(false)
+  const [sendError, setSendError] = useState(false)
 
   const sycofantieValkuil = aiValkuilen[2]
 
@@ -57,6 +58,7 @@ export default function SycophancyRound({ interests, level, leerjaar, onComplete
       setAiAntwoord(response)
     } catch (error) {
       console.error('Error generating sycophantic response:', error)
+      setSendError(true)
     } finally {
       setLoading(false)
     }
@@ -93,17 +95,22 @@ export default function SycophancyRound({ interests, level, leerjaar, onComplete
       </div>
 
       {!aiAntwoord ? (
-        <Button
-          onClick={handleVerstuur}
-          disabled={!mening.trim() || loading}
-          size="lg"
-          className="w-full"
-        >
-          {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          ) : null}
-          Verstuur naar AI
-        </Button>
+        <>
+          {sendError && (
+            <p className="text-sm text-red-600">Er ging iets mis. Probeer het opnieuw.</p>
+          )}
+          <Button
+            onClick={() => { setSendError(false); handleVerstuur() }}
+            disabled={!mening.trim() || loading}
+            size="lg"
+            className="w-full"
+          >
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            ) : null}
+            Verstuur naar AI
+          </Button>
+        </>
       ) : (
         <>
           {/* AI antwoord */}

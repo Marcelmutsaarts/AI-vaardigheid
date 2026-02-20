@@ -136,7 +136,7 @@ export default function EvalSidebar({
                     </>
                   ) : isActive ? (
                     <>
-                      <span className="text-green-600 text-sm">&#9679;</span>
+                      <span className="text-purple-600 text-sm">&#9679;</span>
                       <span className="text-sm font-bold text-gray-900">
                         Ronde {round}: ???
                       </span>
