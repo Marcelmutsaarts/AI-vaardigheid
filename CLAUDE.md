@@ -143,11 +143,34 @@ Eén scherm met vier fases:
 
 ### Gereed
 - **K - Kiezen**: K1 (AI rollen ontdekken), K2 (strategie bepalen + experimenteren)
-- **I - Instrueren**: I1 (prompt structuur), I2 (oefenen met prompts)
+- **I - Instrueren**: I1 (prompt-ontdekker), I2 (oefenen met prompts)
 - **E - Evalueren**: E1 (Mens-AI-Mens uitleg), E2 (valkuilen herkennen)
 
 ### Gereed (vervolg)
 - **S - Spelregels**: S1 (privacy - wat deel je met AI), S2 (transparantie - wanneer meld je AI-gebruik)
+
+## I-Module: Instrueren
+
+### I1 - Prompt-Ontdekker (interactief)
+Twee-kolom layout waar de leerling prompt-structuur ontdekt via hover en klik.
+
+- **Links (50%)**: Voorbeeld-prompt als doorlopende tekst in kaart. Vier delen (Rol, Context, Instructies, Voorbeeld) zijn aparte `<span>` elementen, visueel aanvankelijk ononderscheidbaar.
+- **Rechts (50%)**: Uitleg per onderdeel verschijnt bij klik (fade-in).
+- **Hover**: deel krijgt lichte achtergrondkleur (ontdekking).
+- **Klik**: kleur persistent + label + vinkje links, uitleg rechts.
+- **Verder**: disabled tot alle 4 onderdelen aangeklikt.
+
+Kleuren: Rol=purple, Context=blue, Instructies=green, Voorbeeld=yellow
+
+Niveauafhankelijke teksten (prompt + intro + uitleg): VMBO simpel, HAVO normaal, VWO academisch. MBO=HAVO, HBO=VWO.
+
+**Componenten:**
+- `src/components/i1/PromptExplorer.tsx` — interactieve twee-kolom layout
+- `src/lib/i1-prompt-data.ts` — niveauafhankelijke prompt-teksten en uitleg
+
+### I2 - Prompt Oefenen
+Leerling bouwt zelf prompts met feedback via AI.
+Gebruikt `promptOnderdelen` en `getOnderdeelLabel` uit `src/lib/instrueren-content.ts`.
 
 ## S-Module: Spelregels
 
