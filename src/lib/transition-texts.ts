@@ -9,7 +9,7 @@ interface TransitionTexts {
 type TransitionKey =
   | 'k-intro' | 'k1-complete' | 'k-complete'
   | 'i-intro' | 'i1-complete' | 'i-complete'
-  | 'e-intro' | 'e1-complete' | 'e-complete'
+  | 'e-intro' | 'e-complete'
   | 's-intro' | 's1-complete' | 's2-complete' | 's-complete'
 
 const transitionTexts: Record<TransitionKey, Record<NiveauGroep, TransitionTexts>> = {
@@ -88,11 +88,6 @@ const transitionTexts: Record<TransitionKey, Record<NiveauGroep, TransitionTexts
     vmbo: { heading: 'Evalueren', subtext: 'Leer checken of AI het goed heeft gedaan.', buttonLabel: 'Aan de slag \u2192' },
     havo: { heading: 'Evalueren', subtext: 'Leer hoe je AI-output kritisch beoordeelt.', buttonLabel: 'Aan de slag \u2192' },
     vwo: { heading: 'Evalueren', subtext: 'Leer hoe je AI-output systematisch evalueert.', buttonLabel: 'Aan de slag \u2192' },
-  },
-  'e1-complete': {
-    vmbo: { heading: 'E1 klaar \u2713', subtext: 'Nu leer je waar AI de mist in gaat.', buttonLabel: 'Ga verder \u2192' },
-    havo: { heading: 'E1 afgerond \u2713', subtext: 'Nu leer je valkuilen van AI herkennen.', buttonLabel: 'Ga verder \u2192' },
-    vwo: { heading: 'E1 afgerond \u2713', subtext: 'Nu leer je veelvoorkomende AI-valkuilen herkennen.', buttonLabel: 'Ga verder \u2192' },
   },
   'e-complete': {
     vmbo: { heading: 'Evalueren: klaar! \ud83c\udf89', subtext: 'Je kunt nu checken of AI het goed doet.', buttonLabel: 'Door naar Spelregels \u2192' },

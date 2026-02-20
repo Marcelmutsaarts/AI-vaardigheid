@@ -74,7 +74,7 @@ export function getLetterBySubStepId(subStepId: string): KiesLetter | undefined 
 
 /**
  * Get the globally next incomplete substep across all letters.
- * Follows the order: K1, K2, I1, I2, E1, E2, S1, S2, S3.
+ * Follows the order: K1, K2, I1, I2, E1, S1, S2, S3.
  * Returns null if everything is completed.
  */
 export function getNextSubStep(progress: Progress): { letter: KiesLetter; subStep: SubStep } | null {

@@ -144,7 +144,7 @@ Eén scherm met vier fases:
 ### Gereed
 - **K - Kiezen**: K1 (AI rollen ontdekken), K2 (strategie bepalen + experimenteren)
 - **I - Instrueren**: I1 (prompt-ontdekker), I2 (oefenen met prompts)
-- **E - Evalueren**: E1 (Mens-AI-Mens uitleg), E2 (valkuilen herkennen)
+- **E - Evalueren**: Één pagina met ontdekking-eerst flow (Mens-AI-Mens + drie valkuilen)
 
 ### Gereed (vervolg)
 - **S - Spelregels**: S1 (privacy - wat deel je met AI), S2 (transparantie - wanneer meld je AI-gebruik)
@@ -193,6 +193,45 @@ Niveauafhankelijke placeholders (VMBO simpel, HAVO normaal, VWO academisch, MBO=
 - Data: `promptOnderdelen`, `getOnderdeelLabel`, `alleRollen` uit `src/lib/instrueren-content.ts`
 
 **Verwijderd:** apart rolkeuze-grid, apart prompt-builder scherm, chatinterface, "Laat AI herschrijven"
+
+## E-Module: Evalueren
+
+### Concept
+E1 (Mens-AI-Mens theorie) en E2 (Spot de valkuilen) zijn samengevoegd tot één twee-kolom pagina.
+Valkuil-namen worden pas NA de oefening onthuld ("ontdekking-eerst" principe).
+
+### Route
+`/leerpad/evalueren` — enkele pagina (geen aparte E1/E2 routes meer)
+
+### Twee-kolom layout
+- **Links (35%, sticky)**: `EvalSidebar` — Mens-AI-Mens mini-diagram, interesses als chips, ronde-voortgang
+- **Rechts (65%)**: `EvalWorkspace` — interesses invullen → drie rondes → afronding
+
+### Flow (5 fases)
+1. **Fase 0 — Interesses invullen**: comma-separated input, personalisatie voor oefeningen
+2. **Fase 1 — Ronde 1 (Vooroordelen)**: AI-gegenereerd verhaal met bias, ja/nee + beschrijving + AI-check
+3. **Fase 2 — Ronde 2 (Verzinsels)**: drie AI-gegenereerde feiten, kies het verzinsel
+4. **Fase 3 — Ronde 3 (Ja-knikker)**: sterke mening invoeren, sycophantisch AI-antwoord, MC-vraag
+5. **Fase 4 — Afronding**: drie valkuilen samengevat + Mens-AI-Mens afsluiter
+
+### Onthulling ("Dit heet:")
+Na elke ronde verschijnt een groene onthullingskaart met:
+- Valkuil-naam + emoji
+- Niveauafhankelijke uitleg (VMBO simpel, HAVO normaal, VWO academisch)
+- Linkerkolom update: "Ronde N: ???" → "Ronde N: [Naam] ✓"
+
+### Componenten
+- `src/components/e/EvalSidebar.tsx` — linkerkolom (Mens-AI-Mens + interesses + voortgang)
+- `src/components/e/EvalWorkspace.tsx` — rechterkolom (fase-management + onthulling)
+- `src/components/e/BiasRound.tsx` — vooroordelen-oefening
+- `src/components/e/HallucinationRound.tsx` — verzinsels-oefening
+- `src/components/e/SycophancyRound.tsx` — ja-knikker-oefening
+- Data: `src/lib/evalueren-content.ts` (valkuilen, prompts, niveau-teksten)
+
+### Navigatie
+- Eén substep in navigation.ts: `{ id: 'e1', title: 'Evalueren', href: '/leerpad/evalueren' }`
+- Bij afronden: markeert zowel e1 als e2 als voltooid (backward compat)
+- Navigeert naar `/leerpad/spelregels/s1`
 
 ## S-Module: Spelregels
 
