@@ -29,7 +29,6 @@ export default function PromptExplorer({ schoolType, onComplete }: PromptExplore
   const hintText = getHintText(schoolType)
 
   const allDiscovered = discoveredParts.size >= 4
-  const hasAnyDiscovered = discoveredParts.size > 0
 
   const handlePartClick = useCallback((partId: string) => {
     setDiscoveredParts(prev => {
@@ -49,7 +48,7 @@ export default function PromptExplorer({ schoolType, onComplete }: PromptExplore
     const base = 'cursor-pointer rounded-sm py-0.5 px-0.5 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-purple-400'
 
     if (isActive) {
-      return `${base} ${colors.active} ring-1 ${colors.border}`
+      return `${base} ${colors.active} ring-1 ring-gray-300`
     }
     if (isDiscovered) {
       return `${base} ${colors.discovered}${isHovered ? ` ${colors.active}` : ''}`
@@ -75,9 +74,7 @@ export default function PromptExplorer({ schoolType, onComplete }: PromptExplore
         {/* Prompt card */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p
-            className={`text-gray-700 ${
-              hasAnyDiscovered ? 'leading-[2.75]' : 'leading-relaxed'
-            } transition-all duration-300`}
+            className="text-gray-700 leading-[2.5]"
           >
             {promptParts.map((part) => {
               const isDiscovered = discoveredParts.has(part.id)
@@ -141,7 +138,7 @@ export default function PromptExplorer({ schoolType, onComplete }: PromptExplore
       </div>
 
       {/* Right column */}
-      <div className="lg:w-1/2 lg:sticky lg:top-8 lg:self-start">
+      <div className="lg:w-1/2 lg:sticky lg:top-8 lg:self-start" aria-live="polite">
         {activePartInfo && activeExplanation && activeColors ? (
           <div
             key={activePart}
