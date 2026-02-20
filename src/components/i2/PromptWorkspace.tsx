@@ -149,8 +149,7 @@ Geef je feedback in EXACT dit JSON format (en niets anders):
   "feedback": [
     {"onderdeel": "rol", "status": "goed|verbeter|ontbreekt", "feedback": "korte feedback"},
     {"onderdeel": "context", "status": "goed|verbeter|ontbreekt", "feedback": "korte feedback"},
-    {"onderdeel": "instructies", "status": "goed|verbeter|ontbreekt", "feedback": "korte feedback"},
-    {"onderdeel": "voorbeeld", "status": "goed|verbeter|ontbreekt", "feedback": "korte feedback"}
+    {"onderdeel": "instructies", "status": "goed|verbeter|ontbreekt", "feedback": "korte feedback"}${promptInput.voorbeeld.trim() ? ',\n    {"onderdeel": "voorbeeld", "status": "goed|verbeter|ontbreekt", "feedback": "korte feedback"}' : ''}
   ]
 }
 
@@ -159,7 +158,7 @@ Regels voor feedback:
 - Bij "goed": benoem wat goed is
 - Bij "verbeter": zeg wat er beter kan, geef een concreet voorbeeld
 - Bij "ontbreekt": geef aan wat er mist
-- Voorbeeld is optioneel, dus alleen "ontbreekt" als het echt zou helpen
+- Voorbeeld is OPTIONEEL. Als het niet is ingevuld, geef er dan GEEN feedback op. Laat het weg uit je JSON.
 - Geef GEEN feedback in markdown format, gebruik GEEN ** of andere opmaak`,
           context: {
             niveau: niveau,
@@ -388,7 +387,13 @@ Regels voor feedback:
           </div>
 
           <div className="p-4 space-y-3">
-            {feedbackItems.map((item) => {
+            {feedbackItems
+              .filter((item) => {
+                // Filter out voorbeeld feedback if the field is empty
+                if (item.onderdeel === 'voorbeeld' && !promptInput.voorbeeld.trim()) return false
+                return true
+              })
+              .map((item) => {
               const isGood = item.status === 'goed'
               const onderdeel = promptOnderdelen.find((o) => o.id === item.onderdeel)
 
