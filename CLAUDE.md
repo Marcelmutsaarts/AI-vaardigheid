@@ -168,9 +168,31 @@ Niveauafhankelijke teksten (prompt + intro + uitleg): VMBO simpel, HAVO normaal,
 - `src/components/i1/PromptExplorer.tsx` — interactieve twee-kolom layout
 - `src/lib/i1-prompt-data.ts` — niveauafhankelijke prompt-teksten en uitleg
 
-### I2 - Prompt Oefenen
-Leerling bouwt zelf prompts met feedback via AI.
-Gebruikt `promptOnderdelen` en `getOnderdeelLabel` uit `src/lib/instrueren-content.ts`.
+### I2 - Prompt Oefenen (twee-kolom layout)
+Leerling bouwt zelf prompts met feedback via AI. Eén pagina, twee kolommen.
+
+**Linkerkolom (35%, sticky):** Compacte rollenlijst
+- Twee groepen: "AI helpt mij" (4 rollen) + "AI doet het" (4 rollen)
+- Kaartjes met emoji, naam, beschrijving
+- Geselecteerd: paarse border + bg-purple-50
+- Voltooid: groen vinkje rechts
+- Rolwisseling met bevestigingsdialoog bij onvoltooid werk
+
+**Rechterkolom (65%):** Vier fases die sequentieel verschijnen
+- **Fase 1 — Prompt bouwen**: 4 velden (Rol/Context/Instructies/Voorbeeld) met kleurnummers (amber/emerald/blue/purple)
+- **Fase 2 — Feedback (verplicht)**: API call naar `/api/chat`, per veld ✓/✕, klikbaar naar veld bij ✕
+- **Fase 3 — Testen**: SSE streaming via `/api/chat-stream`, prompt + AI-antwoord weergave, geen chatinterface
+- **Fase 4 — Reflectie**: Ja/Deels/Nee — "Ja" markeert rol als voltooid
+
+Verder-knop disabled tot minimaal 1 rol voltooid.
+Niveauafhankelijke placeholders (VMBO simpel, HAVO normaal, VWO academisch, MBO=HAVO, HBO=VWO).
+
+**Componenten:**
+- `src/components/i2/RoleList.tsx` — rollenlijst linkerkolom
+- `src/components/i2/PromptWorkspace.tsx` — rechterkolom met alle 4 fases
+- Data: `promptOnderdelen`, `getOnderdeelLabel`, `alleRollen` uit `src/lib/instrueren-content.ts`
+
+**Verwijderd:** apart rolkeuze-grid, apart prompt-builder scherm, chatinterface, "Laat AI herschrijven"
 
 ## S-Module: Spelregels
 
