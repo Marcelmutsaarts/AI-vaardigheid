@@ -147,7 +147,7 @@ Eén scherm met vier fases:
 - **E - Evalueren**: Één pagina met ontdekking-eerst flow (Mens-AI-Mens + drie valkuilen)
 
 ### Gereed (vervolg)
-- **S - Spelregels**: S1 (privacy - wat deel je met AI), S2 (transparantie - wanneer meld je AI-gebruik)
+- **S - Spelregels**: Één pagina met drie onderdelen in vrije volgorde (Privacy, Transparantie, Duurzaamheid)
 
 ## I-Module: Instrueren
 
@@ -231,31 +231,57 @@ Na elke ronde verschijnt een groene onthullingskaart met:
 ### Navigatie
 - Eén substep in navigation.ts: `{ id: 'e1', title: 'Evalueren', href: '/leerpad/evalueren' }`
 - Bij afronden: markeert zowel e1 als e2 als voltooid (backward compat)
-- Navigeert naar `/leerpad/spelregels/s1`
+- Navigeert naar `/leerpad/spelregels`
 
 ## S-Module: Spelregels
 
-### S1 - Wat stop je in AI?
-Drie interactieve categorieën over privacy:
-- **Van jezelf**: Persoonlijke gegevens (adres, wachtwoorden, etc.)
-- **Van anderen**: Informatie over andere mensen (privacy van derden)
-- **Vertrouwelijk**: Geheime/vertrouwelijke info (toetsantwoorden, bedrijfsgeheimen)
+### Concept
+S1 (Privacy), S2 (Transparantie) en S3 (Duurzaamheid) zijn samengevoegd tot één twee-kolom pagina.
+Vrije volgorde — de leerling kiest zelf welk onderdeel eerst.
 
-Leerling typt wat ze NIET zouden delen → AI geeft niveau-aangepaste feedback met uitleg waarom.
+### Route
+`/leerpad/spelregels` — enkele pagina (geen aparte S1/S2/S3 routes meer)
 
-### S2 - Wanneer meld je AI-gebruik?
-Twee delen:
-1. **Schoolbeleid**: Vraag of leerling schoolregels kent (3 opties met specifieke reacties)
-2. **Reflectie op K2-plan**: Leerling ziet eigen AI-strategie uit K2 terug en reflecteert of ze dit gebruik zouden melden
+### Twee-kolom layout
+- **Links (35%, sticky)**: `RulesSidebar` — visueel thema-blok (🔒🔍🌱), drie onderdeel-knoppen, Verder-knop
+- **Rechts (65%)**: thema-introductie of de geselecteerde oefening
 
-Koppeling met K2: haalt stappen en aanpakken uit localStorage (`kies-k2-state`)
+### Flow
+1. **Begintoestand**: niveauafhankelijke introtekst + drie visuele kaarten (Privacy, Transparantie, Duurzaamheid)
+2. **Klik op onderdeel**: oefening verschijnt in rechterkolom
+3. **Wisselen**: direct klikken op ander onderdeel, voortgang per onderdeel bewaard
+4. **Voltooiing**: vinkje in sidebar, "Goed gedaan!" melding
+5. **Module afronden**: alle drie voltooid → Verder-knop actief → dashboard
 
-### S3 - AI en energie
-Genuanceerde blik op duurzaamheid:
-- Quiz: hoeveel ChatGPT-vragen = 1 uur Netflix? (antwoord: ~100-200)
-- Visuele vergelijking: tekst vs afbeelding vs video generatie
-- Niveau-aangepaste uitleg en tips
-- Kernboodschap: AI voor leren is de energie waard, mindloos genereren niet
+### Onderdelen (oefeningen inhoudelijk ongewijzigd)
+
+**🔒 Privacy — Wat stop je in AI?**
+- Drie invulkaarten: Van jezelf, Van anderen, Vertrouwelijk
+- Per kaart: textarea + Check → API call `/api/s1-feedback` (Gemini)
+- Voltooid als alle drie kaarten feedback hebben
+
+**🔍 Transparantie — Wanneer meld je AI-gebruik?**
+- Deel 1: Schoolbeleid MC-vraag (3 opties met directe reactie)
+- Deel 2: K2-plan reflectie + textarea + Check → API call `/api/s2-feedback` (Gemini)
+- Leest K2-data uit localStorage (`kies-k2-state`), fallback als niet beschikbaar
+- Voltooid als reflectie-feedback ontvangen
+
+**🌱 Duurzaamheid — Wat kost AI?**
+- Intro (niveauafhankelijk) + MC quiz (10/100/1000 vragen ≈ 1 uur Netflix)
+- Energievergelijking: tekst vs afbeelding vs video balkjes
+- Niveauafhankelijke uitleg + tip
+- Geen API call — volledig lokaal
+
+### Componenten
+- `src/components/s/RulesSidebar.tsx` — linkerkolom (thema-blok + onderdeel-knoppen + Verder)
+- `src/components/s/PrivacyExercise.tsx` — S1 oefening (inbedbaar)
+- `src/components/s/TransparencyExercise.tsx` — S2 oefening (inbedbaar)
+- `src/components/s/SustainabilityExercise.tsx` — S3 oefening (inbedbaar)
+
+### Navigatie
+- Drie substeps in navigation.ts: s1, s2, s3 — alle wijzen naar `/leerpad/spelregels`
+- Bij voltooiing: markeert individueel s1/s2/s3 als voltooid (backward compat)
+- Module afronden navigeert naar `/dashboard`
 
 ## K2 Experimenteer-pagina
 Na K2 kan de leerling experimenteren met strategie-aanpassingen:

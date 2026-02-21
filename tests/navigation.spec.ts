@@ -217,9 +217,7 @@ test.describe('All substep pages load', () => {
     '/leerpad/instrueren/i1',
     '/leerpad/instrueren/i2',
     '/leerpad/evalueren',
-    '/leerpad/spelregels/s1',
-    '/leerpad/spelregels/s2',
-    '/leerpad/spelregels/s3',
+    '/leerpad/spelregels',
   ]) {
     test(`${path} loads without errors`, async ({ page }) => {
       const pageErrors: string[] = []
