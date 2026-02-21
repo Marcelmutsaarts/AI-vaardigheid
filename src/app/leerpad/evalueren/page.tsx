@@ -48,7 +48,7 @@ export default function EvaluerenPage() {
   const handleModuleComplete = () => {
     updateProgress('evalueren', 'e1', true)
     updateProgress('evalueren', 'e2', true)
-    router.push('/leerpad/spelregels/s1')
+    router.push('/leerpad/spelregels')
   }
 
   // ── Render ────────────────────────────────────────────────────────────────

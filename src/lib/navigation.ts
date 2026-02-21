@@ -49,9 +49,9 @@ export const kiesStructuur: KiesLetter[] = [
     description: 'Wat mag en moet?',
     color: '#7947ba', href: '/leerpad/spelregels',
     subSteps: [
-      { id: 's1', title: 'Wat deel je?', description: 'Denk na over wat je aan AI vertelt', href: '/leerpad/spelregels/s1' },
-      { id: 's2', title: 'Wanneer vertel je het?', description: 'Transparantie over AI-gebruik', href: '/leerpad/spelregels/s2' },
-      { id: 's3', title: 'AI en energie', description: 'Hoeveel stroom kost AI eigenlijk?', href: '/leerpad/spelregels/s3' },
+      { id: 's1', title: 'Wat deel je?', description: 'Denk na over wat je aan AI vertelt', href: '/leerpad/spelregels' },
+      { id: 's2', title: 'Wanneer vertel je het?', description: 'Transparantie over AI-gebruik', href: '/leerpad/spelregels' },
+      { id: 's3', title: 'AI en energie', description: 'Hoeveel stroom kost AI eigenlijk?', href: '/leerpad/spelregels' },
     ]
   },
 ]
