@@ -3,44 +3,22 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Award, CheckCircle2 } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
 import ProgressStepper from '@/components/navigation/ProgressStepper'
-import RulesSidebar, { SectionKey } from '@/components/s/RulesSidebar'
-import PrivacyExercise from '@/components/s/PrivacyExercise'
-import TransparencyExercise from '@/components/s/TransparencyExercise'
-import SustainabilityExercise from '@/components/s/SustainabilityExercise'
 
-function getNiveauGroep(schoolType: string): 'vmbo' | 'havo' | 'vwo' {
-  if (schoolType === 'vmbo') return 'vmbo'
-  if (schoolType === 'havo' || schoolType === 'mbo') return 'havo'
-  return 'vwo' // vwo, hbo
-}
-
-const introTeksten: Record<string, string> = {
-  vmbo: 'AI is handig, maar je moet er wel goed mee omgaan. Drie dingen zijn belangrijk:',
-  havo: 'AI is krachtig. Maar kracht vraagt verantwoordelijkheid. Er zijn drie dingen om over na te denken:',
-  vwo: 'Met de kracht van AI komt verantwoordelijkheid. Drie dimensies verdienen je aandacht:',
-}
-
-const sectionHeaders: Record<SectionKey, { emoji: string; title: string }> = {
-  privacy: { emoji: '\u{1F512}', title: 'Privacy \u2014 Wat stop je in AI?' },
-  transparency: { emoji: '\u{1F50D}', title: 'Transparantie \u2014 Wanneer meld je AI-gebruik?' },
-  sustainability: { emoji: '\u{1F331}', title: 'Duurzaamheid \u2014 AI en energie' },
-}
+const introTekst = 'Bekijk het plaatje goed en bespreek het samen met je docent.'
 
 export default function SpelregelsPage() {
   const router = useRouter()
   const { niveau, progress, updateProgress } = useNiveau()
+  const [isCompleted, setIsCompleted] = useState(false)
 
-  // ── State ─────────────────────────────────────────────────────────────────
-  const [selectedSection, setSelectedSection] = useState<SectionKey | null>(null)
-  const [completedSections, setCompletedSections] = useState<Set<string>>(new Set())
-
-  // ── Niveau guard ──────────────────────────────────────────────────────────
+  // Niveau guard
   useEffect(() => {
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
@@ -48,13 +26,12 @@ export default function SpelregelsPage() {
     }
   }, [niveau, router])
 
-  // ── Load initial progress ─────────────────────────────────────────────────
+  // Load initial progress
   useEffect(() => {
-    const initial = new Set<string>()
-    if ((progress.spelregels as Record<string, boolean>).s1) initial.add('privacy')
-    if ((progress.spelregels as Record<string, boolean>).s2) initial.add('transparency')
-    if ((progress.spelregels as Record<string, boolean>).s3) initial.add('sustainability')
-    if (initial.size > 0) setCompletedSections(initial)
+    const sp = progress.spelregels as Record<string, boolean>
+    if (sp.s1 && sp.s2 && sp.s3) {
+      setIsCompleted(true)
+    }
   }, [progress])
 
   const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
@@ -62,37 +39,21 @@ export default function SpelregelsPage() {
     return null
   }
 
-  // ── Callbacks ─────────────────────────────────────────────────────────────
-  const handleSectionComplete = (section: SectionKey) => {
-    setCompletedSections(prev => {
-      const next = new Set(prev)
-      next.add(section)
-      return next
-    })
-    // Update progress for backward compat
-    const progressMap: Record<SectionKey, string> = {
-      privacy: 's1',
-      transparency: 's2',
-      sustainability: 's3',
-    }
-    updateProgress('spelregels', progressMap[section], true)
-  }
-
   const handleFinish = () => {
-    router.push('/dashboard')
+    // Mark all S substeps as completed
+    updateProgress('spelregels', 's1', true)
+    updateProgress('spelregels', 's2', true)
+    updateProgress('spelregels', 's3', true)
+    setIsCompleted(true)
   }
 
-  const niveauGroep = getNiveauGroep(niveau.schoolType!)
-  const introTekst = introTeksten[niveauGroep]
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <ProgressStepper activeLetter="spelregels" />
 
       <main className="flex-1 py-8">
-        <div className="container mx-auto px-4 max-w-5xl">
+        <div className="container mx-auto px-4 max-w-3xl">
           {/* Back link */}
           <Link
             href="/dashboard"
@@ -104,7 +65,7 @@ export default function SpelregelsPage() {
 
           {/* Page header */}
           <div className="mb-6">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
                 style={{ backgroundColor: kiesKleuren.spelregels }}
@@ -116,91 +77,62 @@ export default function SpelregelsPage() {
                 <p className="text-sm text-gray-500">Wat mag en moet bij AI-gebruik?</p>
               </div>
             </div>
+            <p className="text-sm text-gray-700">{introTekst}</p>
           </div>
 
-          {/* Two-column layout */}
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left column -- sticky on desktop */}
-            <div className="w-full lg:w-[35%] flex-shrink-0">
-              <div className="lg:sticky lg:top-24">
-                <RulesSidebar
-                  level={niveau.schoolType!}
-                  selectedSection={selectedSection}
-                  completedSections={completedSections}
-                  onSelectSection={setSelectedSection}
-                  onFinish={handleFinish}
-                />
+          {/* Infographic */}
+          <div className="bg-white rounded-xl border shadow-sm overflow-hidden mb-6">
+            <Image
+              src="/infographic-spelregels.png"
+              alt="AI op school? Praat mee! Infographic over privacy, transparantie en duurzaamheid bij AI-gebruik"
+              width={1200}
+              height={600}
+              className="w-full h-auto"
+              priority
+            />
+          </div>
+
+          {/* Afrondblok */}
+          {!isCompleted ? (
+            <div className="bg-white rounded-xl border shadow-sm p-6 text-center">
+              <h3 className="font-semibold text-gray-900 mb-2">Klaar met bespreken?</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Rond de module af en bekijk je persoonlijke KIES-overzicht.
+              </p>
+              <button
+                onClick={handleFinish}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white font-medium transition-all hover:opacity-90"
+                style={{ backgroundColor: kiesKleuren.spelregels }}
+              >
+                Module afronden
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+              <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-3" />
+              <h3 className="font-semibold text-green-900 mb-2">Module afgerond!</h3>
+              <p className="text-sm text-green-700 mb-4">
+                Je hebt alle vier de KIES-onderdelen doorlopen. Bekijk je overzicht of ga terug naar het dashboard.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/diploma"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-white font-medium transition-all hover:opacity-90"
+                  style={{ backgroundColor: kiesKleuren.spelregels }}
+                >
+                  <Award className="h-4 w-4" />
+                  Bekijk je KIES-overzicht
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all"
+                >
+                  Terug naar dashboard
+                </Link>
               </div>
             </div>
-
-            {/* Right column */}
-            <div className="flex-1 min-w-0">
-              {selectedSection === null && (
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-2">Spelregels</h2>
-                  <p className="text-sm text-gray-600 mb-6">{introTekst}</p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <button
-                      onClick={() => setSelectedSection('privacy')}
-                      className="bg-white rounded-xl border shadow-sm p-4 text-center cursor-pointer hover:border-purple-300 hover:shadow-md transition-all"
-                    >
-                      <span className="text-3xl block mb-2">{'\u{1F512}'}</span>
-                      <span className="font-medium text-gray-900 block">Privacy</span>
-                      <span className="text-xs text-gray-500">Wat deel je met AI?</span>
-                    </button>
-                    <button
-                      onClick={() => setSelectedSection('transparency')}
-                      className="bg-white rounded-xl border shadow-sm p-4 text-center cursor-pointer hover:border-purple-300 hover:shadow-md transition-all"
-                    >
-                      <span className="text-3xl block mb-2">{'\u{1F50D}'}</span>
-                      <span className="font-medium text-gray-900 block">Transparantie</span>
-                      <span className="text-xs text-gray-500">Wanneer vertel je het?</span>
-                    </button>
-                    <button
-                      onClick={() => setSelectedSection('sustainability')}
-                      className="bg-white rounded-xl border shadow-sm p-4 text-center cursor-pointer hover:border-purple-300 hover:shadow-md transition-all"
-                    >
-                      <span className="text-3xl block mb-2">{'\u{1F331}'}</span>
-                      <span className="font-medium text-gray-900 block">Duurzaamheid</span>
-                      <span className="text-xs text-gray-500">Wat kost AI eigenlijk?</span>
-                    </button>
-                  </div>
-
-                  <p className="text-sm text-gray-500 text-center">Kies een onderdeel om te beginnen.</p>
-                </div>
-              )}
-
-              {selectedSection !== null && (
-                <div>
-                  {/* Section header */}
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    {sectionHeaders[selectedSection].emoji} {sectionHeaders[selectedSection].title}
-                  </h2>
-
-                  {/* Exercise */}
-                  {selectedSection === 'privacy' && (
-                    <PrivacyExercise level={niveau.schoolType!} onComplete={() => handleSectionComplete('privacy')} />
-                  )}
-                  {selectedSection === 'transparency' && (
-                    <TransparencyExercise level={niveau.schoolType!} onComplete={() => handleSectionComplete('transparency')} />
-                  )}
-                  {selectedSection === 'sustainability' && (
-                    <SustainabilityExercise level={niveau.schoolType!} onComplete={() => handleSectionComplete('sustainability')} />
-                  )}
-
-                  {/* Completion message */}
-                  {completedSections.has(selectedSection) && (
-                    <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                      <p className="text-sm text-green-800">
-                        Goed gedaan! Kies een ander onderdeel, of rond de module af.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </main>
 

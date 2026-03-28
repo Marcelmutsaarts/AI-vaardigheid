@@ -93,8 +93,8 @@ export function Header() {
                         </div>
                       </div>
                     ))}
-                    {/* MBO/HBO zonder leerjaar */}
-                    <div className="border-t border-gray-100 mt-2 pt-2">
+                    {/* MBO/HBO zonder leerjaar — tijdelijk verborgen, alleen VO */}
+                    {/* <div className="border-t border-gray-100 mt-2 pt-2">
                       {(['mbo', 'hbo'] as const).map((type) => (
                         <button
                           key={type}
@@ -111,7 +111,7 @@ export function Header() {
                           {type.toUpperCase()}
                         </button>
                       ))}
-                    </div>
+                    </div> */}
                   </div>
                 )}
               </div>

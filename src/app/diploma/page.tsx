@@ -46,17 +46,7 @@ const aiValkuilen = [
   { emoji: '😊', naam: 'Ja-knikken', tip: 'AI is het snel met je eens' },
 ]
 
-// S - Spelregels
-const privacyChecklist = [
-  'Geen persoonlijke gegevens (adres, wachtwoorden)',
-  'Geen info over anderen zonder toestemming',
-  'Geen vertrouwelijke info (toetsantwoorden)',
-]
-
-const transparantieTips = [
-  'Schoolregels gaan altijd voor',
-  'Hoe meer AI doet, hoe meer melden',
-]
+// S - Spelregels: drie pijlers (Veilig, Eerlijk, Bewust)
 
 export default function DiplomaPage() {
   const router = useRouter()
@@ -284,27 +274,25 @@ export default function DiplomaPage() {
                 <h2 className="font-semibold text-gray-900">Spelregels: Wat mag?</h2>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div className="bg-red-50 rounded-lg p-2 border border-red-200">
-                  <p className="text-[10px] font-medium text-red-800 mb-1">🔒 Privacy</p>
+                <div className="bg-purple-50 rounded-lg p-2 border border-purple-200">
+                  <p className="text-[10px] font-medium text-purple-800 mb-1">🔒 Veilig</p>
                   <ul className="text-[9px] text-gray-600 space-y-0.5">
-                    {privacyChecklist.map((item, i) => (
-                      <li key={i}>• {item}</li>
-                    ))}
+                    <li>• Geen persoonlijke gegevens delen</li>
+                    <li>• Gebruik goedgekeurde tools</li>
                   </ul>
                 </div>
                 <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
-                  <p className="text-[10px] font-medium text-amber-800 mb-1">📢 Melden</p>
+                  <p className="text-[10px] font-medium text-amber-800 mb-1">⚖️ Eerlijk</p>
                   <ul className="text-[9px] text-gray-600 space-y-0.5">
-                    {transparantieTips.map((item, i) => (
-                      <li key={i}>• {item}</li>
-                    ))}
+                    <li>• Meld AI-gebruik</li>
+                    <li>• Controleer altijd de output</li>
                   </ul>
                 </div>
                 <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                  <p className="text-[10px] font-medium text-green-800 mb-1">🌱 Bewust</p>
+                  <p className="text-[10px] font-medium text-green-800 mb-1">🧠 Bewust</p>
                   <ul className="text-[9px] text-gray-600 space-y-0.5">
-                    <li>• AI voor leren = de moeite waard</li>
-                    <li>• Mindloos genereren = verspilling</li>
+                    <li>• AI kan fouten maken</li>
+                    <li>• Gebruik AI doelgericht</li>
                   </ul>
                 </div>
               </div>

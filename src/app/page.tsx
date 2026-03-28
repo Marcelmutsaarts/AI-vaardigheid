@@ -111,7 +111,7 @@ export default function Home() {
 
                   {/* School type selection */}
                   <div className="flex justify-center gap-3 mb-8 flex-wrap">
-                    {(['vmbo', 'havo', 'vwo', 'mbo', 'hbo'] as const).map((type) => (
+                    {(['vmbo', 'havo', 'vwo'] as const).map((type) => (
                       <button
                         key={type}
                         onClick={() => {
