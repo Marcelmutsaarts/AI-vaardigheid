@@ -1,85 +1,216 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useNiveau } from '@/contexts/NiveauContext'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, Award } from 'lucide-react'
+import { ArrowLeft, Bot, Download } from 'lucide-react'
 import { kiesKleuren } from '@/lib/utils'
+import { getNiveauGroep } from '@/lib/transition-utils'
+import { getPersona, type AxisValue, type Persona } from '@/lib/persona-data'
+import {
+  casusPerNiveau,
+  themasInVolgorde,
+  type ThemaId,
+} from '@/lib/spelregels-cases'
+import { samenRollen, aiDoetRollen } from '@/lib/k1-roles-data'
 
-// K - Kiezen: 3 aanpakken
-const drieAanpakken = [
-  { emoji: '👤', naam: 'Zelf', beschrijving: 'Zonder AI' },
-  { emoji: '🤝', naam: 'AI helpt', beschrijving: 'AI ondersteunt mij' },
-  { emoji: '🤖', naam: 'AI doet', beschrijving: 'AI maakt, ik check' },
-]
+const K2_STORAGE_KEY = 'kies-k2-state'
+const K1_ROLES_KEY = 'kies-k1-roles-tried'
+const S_STORAGE_KEY = 'kies-spelregels-state'
+const PERSONA_DESC_KEY = 'kies-persona-description'
 
-// K - Kiezen: 8 AI-rollen
-const aiRollen = {
-  helpt: [
-    { emoji: '🎓', naam: 'Uitlegger' },
-    { emoji: '💡', naam: 'Brainstormer' },
-    { emoji: '💬', naam: 'Feedbacker' },
-    { emoji: '🎭', naam: 'Oefenmaatje' },
-  ],
-  doet: [
-    { emoji: '✍️', naam: 'Schrijver' },
-    { emoji: '🌍', naam: 'Vertaler' },
-    { emoji: '✨', naam: 'Verbeteraar' },
-    { emoji: '📋', naam: 'Samenvatter' },
-  ]
+interface SliderValues {
+  totaalLeren: AxisValue
+  totaalKwaliteit: AxisValue
+  totaalSnelheid: AxisValue
 }
 
-// I - Instrueren: 4 prompt onderdelen
+interface K2Stap {
+  id: string
+  titel: string
+  approach: { type: 'zelf' } | { type: 'roles'; roles: Array<{ id: string; category: 'aihelpt' | 'aidoet'; name: string; emoji: string }> } | null
+}
+
+interface K2State {
+  gekozenOpdracht?: { titel?: string } | null
+  stappen?: K2Stap[]
+  totaalLeren?: AxisValue
+  totaalKwaliteit?: AxisValue
+  totaalSnelheid?: AxisValue
+}
+
+interface K1RolesState {
+  triedRoles?: string[]
+}
+
+interface SpelregelsState {
+  conclusies?: Record<ThemaId, string>
+}
+
+function readK2State(): K2State | null {
+  try {
+    const raw = localStorage.getItem(K2_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function readK1Tried(): string[] {
+  try {
+    const raw = localStorage.getItem(K1_ROLES_KEY)
+    if (!raw) return []
+    const parsed: K1RolesState = JSON.parse(raw)
+    return parsed.triedRoles ?? []
+  } catch {
+    return []
+  }
+}
+
+function readSConclusies(): Record<ThemaId, string> | null {
+  try {
+    const raw = localStorage.getItem(S_STORAGE_KEY)
+    if (!raw) return null
+    const parsed: SpelregelsState = JSON.parse(raw)
+    return parsed.conclusies ?? null
+  } catch {
+    return null
+  }
+}
+
+function readPersonaDescription(): string | null {
+  try {
+    return localStorage.getItem(PERSONA_DESC_KEY)
+  } catch {
+    return null
+  }
+}
+
+function getSliderValues(state: K2State | null): SliderValues | null {
+  if (!state) return null
+  const l = state.totaalLeren
+  const k = state.totaalKwaliteit
+  const s = state.totaalSnelheid
+  if (l !== -1 && l !== 0 && l !== 1) return null
+  if (k !== -1 && k !== 0 && k !== 1) return null
+  if (s !== -1 && s !== 0 && s !== 1) return null
+  return { totaalLeren: l, totaalKwaliteit: k, totaalSnelheid: s }
+}
+
+const themaKleuren: Record<ThemaId, { soft: string; border: string; text: string; accent: string }> = {
+  privacy: { soft: '#fef2f2', border: '#fca5a5', text: '#b91c1c', accent: '#ef4444' },
+  transparantie: { soft: '#fffbeb', border: '#fcd34d', text: '#b45309', accent: '#f59e0b' },
+  duurzaamheid: { soft: '#f0fdf4', border: '#86efac', text: '#15803d', accent: '#22c55e' },
+}
+
 const promptOnderdelen = [
-  { nummer: 1, titel: 'Rol', vraag: 'Wie is de AI?', verplicht: true },
-  { nummer: 2, titel: 'Context', vraag: 'Wat is de situatie?', verplicht: true },
-  { nummer: 3, titel: 'Instructies', vraag: 'Wat moet AI doen?', verplicht: true },
-  { nummer: 4, titel: 'Voorbeeld', vraag: 'Hoe moet het eruit zien?', verplicht: false },
+  { nummer: 1, titel: 'Rol', vraag: 'Wie is de AI?' },
+  { nummer: 2, titel: 'Context', vraag: 'Wat is de situatie?' },
+  { nummer: 3, titel: 'Instructies', vraag: 'Wat moet AI doen?' },
+  { nummer: 4, titel: 'Voorbeeld', vraag: 'Hoe moet het eruitzien?' },
 ]
 
-// E - Evalueren: valkuilen
-const aiValkuilen = [
-  { emoji: '🎭', naam: 'Vooroordelen', tip: 'Maakt AI aannames over mensen?' },
-  { emoji: '🌀', naam: 'Verzinsels', tip: 'Check feiten bij betrouwbare bron' },
-  { emoji: '😊', naam: 'Ja-knikken', tip: 'AI is het snel met je eens' },
+const eValkuilen = [
+  { emoji: '🎭', naam: 'Vooroordelen', tip: 'AI maakt aannames over mensen' },
+  { emoji: '🌀', naam: 'Verzinsels', tip: 'AI geeft zelfverzekerd onjuiste feiten' },
+  { emoji: '😊', naam: 'Ja-knikken', tip: 'AI is het te snel met je eens' },
 ]
 
-// S - Spelregels: drie pijlers (Veilig, Eerlijk, Bewust)
+const eMensAiMens = [
+  { label: 'Begrijpen', icon: '🧑', sub: 'Jij weet wat je wil weten' },
+  { label: 'Checken', icon: '🤖', sub: 'AI doet een poging' },
+  { label: 'Aanpassen', icon: '🧑', sub: 'Jij beoordeelt en bewerkt' },
+]
+
+function findRoleById(id: string) {
+  return samenRollen.find(r => r.id === id) ?? aiDoetRollen.find(r => r.id === id) ?? null
+}
 
 export default function DiplomaPage() {
   const router = useRouter()
   const { niveau } = useNiveau()
   const [naam, setNaam] = useState('')
-  const diplomaRef = useRef<HTMLDivElement>(null)
+  const [persona, setPersona] = useState<Persona | null>(null)
+  const [personaDescription, setPersonaDescription] = useState<string | null>(null)
+  const [k2State, setK2State] = useState<K2State | null>(null)
+  const [k1Tried, setK1Tried] = useState<string[]>([])
+  const [sConclusies, setSConclusies] = useState<Record<ThemaId, string> | null>(null)
+  const [downloading, setDownloading] = useState(false)
+  const [ready, setReady] = useState(false)
+  const rapportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // MBO/HBO hebben geen leerjaar, VO niveaus wel
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
       router.push('/')
+      return
     }
+
+    const k2 = readK2State()
+    setK2State(k2)
+    setK1Tried(readK1Tried())
+    setSConclusies(readSConclusies())
+
+    const sliders = getSliderValues(k2)
+    if (sliders) {
+      const p = getPersona(sliders.totaalLeren, sliders.totaalKwaliteit, sliders.totaalSnelheid)
+      setPersona(p)
+      const stored = readPersonaDescription()
+      setPersonaDescription(stored && stored.length > 0 ? stored : p.baseDescription)
+    }
+
+    setReady(true)
   }, [niveau, router])
 
-  // MBO/HBO hebben geen leerjaar, VO niveaus wel
+  if (!ready) return null
+
   const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
-  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) {
-    return null
-  }
+  if (!niveau.schoolType || (needsLeerjaar && !niveau.leerjaar)) return null
 
   const niveauLabel = niveau.leerjaar
     ? `${niveau.schoolType.toUpperCase()} ${niveau.leerjaar}`
     : niveau.schoolType.toUpperCase()
+  const niveauGroep = getNiveauGroep(niveau.schoolType)
+  const sCasussen = casusPerNiveau[niveauGroep]
 
-  const handlePrint = () => {
-    window.print()
+  const triedSamen = k1Tried.filter(id => samenRollen.some(r => r.id === id))
+  const triedAiDoet = k1Tried.filter(id => aiDoetRollen.some(r => r.id === id))
+  const opdrachtTitel = k2State?.gekozenOpdracht?.titel ?? null
+  const stappen = k2State?.stappen ?? []
+  const stappenIngevuld = stappen.filter(s => s.titel?.trim().length > 0)
+
+  const handleDownload = async () => {
+    if (!rapportRef.current) return
+    setDownloading(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(rapportRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: false,
+      })
+      const dataUrl = canvas.toDataURL('image/png')
+      const link = document.createElement('a')
+      const cleanName = (naam.trim() || persona?.name?.replace(/^De\s+/i, '') || 'kies-overzicht')
+        .replace(/[^a-z0-9]+/gi, '-')
+        .toLowerCase()
+      link.download = `kies-overzicht-${cleanName}.png`
+      link.href = dataUrl
+      link.click()
+    } catch (err) {
+      console.error('Download error:', err)
+    } finally {
+      setDownloading(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - hidden when printing */}
-      <div className="print:hidden bg-white border-b">
+      {/* Top nav */}
+      <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
           <Link
             href="/dashboard"
@@ -91,235 +222,501 @@ export default function DiplomaPage() {
         </div>
       </div>
 
-      {/* Intro section - hidden when printing */}
-      <div className="print:hidden container mx-auto px-4 py-6 max-w-2xl">
-        <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Award className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Je KIES overzicht</h1>
-              <p className="text-sm text-gray-600">Download een overzicht van wat je hebt geleerd</p>
-            </div>
-          </div>
+      {/* Intro / settings */}
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="bg-white rounded-2xl border shadow-sm p-5 md:p-6 mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">Mijn KIES-overzicht</h1>
+          <p className="text-sm text-gray-600 mb-4">Een persoonlijke samenvatting van wat jij hebt gedaan in KIES.</p>
 
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Wil je je naam op het overzicht? (optioneel)
-            </label>
-            <input
-              type="text"
-              value={naam}
-              onChange={(e) => setNaam(e.target.value)}
-              placeholder="Je naam..."
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
-            <p className="text-xs text-gray-500 mt-2">
-              Je gegevens worden nergens opgeslagen. Dit is alleen voor op je overzicht.
-            </p>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Wil je je naam op je rapport? (optioneel)
+              </label>
+              <input
+                type="text"
+                value={naam}
+                onChange={(e) => setNaam(e.target.value)}
+                placeholder="Je naam..."
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+            </div>
+            <Button onClick={handleDownload} disabled={downloading} size="lg" className="sm:w-auto w-full">
+              <Download className="h-4 w-4 mr-2" />
+              {downloading ? 'Bezig...' : 'Download als afbeelding'}
+            </Button>
           </div>
-
-          <Button onClick={handlePrint} className="w-full">
-            <Download className="h-4 w-4 mr-2" />
-            Download / Print overzicht
-          </Button>
         </div>
-      </div>
 
-      {/* Diploma - visible when printing */}
-      <div
-        ref={diplomaRef}
-        className="container mx-auto px-4 py-6 max-w-2xl print:max-w-none print:px-8 print:py-4"
-      >
-        <div className="bg-white rounded-xl border shadow-sm print:shadow-none print:border-2 print:border-primary/30 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-primary to-purple-600 text-white p-6 print:p-4">
-            <div className="flex items-center justify-between">
+        {/* === HET RAPPORT === */}
+        <div className="overflow-x-auto">
+          <div
+            ref={rapportRef}
+            className="mx-auto"
+            style={{
+              width: 820,
+              background: 'linear-gradient(180deg, #ffffff 0%, #faf5ff 100%)',
+              borderRadius: 24,
+              padding: '40px 44px',
+              fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+              border: '1px solid #e9d5ff',
+              boxShadow: '0 4px 24px rgba(139, 92, 246, 0.08)',
+            }}
+          >
+            {/* Header strip */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: 16,
+                borderBottom: '2px solid #c4b5fd',
+                marginBottom: 28,
+              }}
+            >
               <div>
-                <h1 className="text-2xl print:text-xl font-bold">KIES Overzicht</h1>
-                <p className="text-white/80 text-sm">AI-vaardigheden voor {niveauLabel}</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.18em', textTransform: 'uppercase', margin: 0 }}>
+                  KIES — AI-vaardigheid voor docenten
+                </p>
+                <h1 style={{ fontSize: 30, fontWeight: 800, color: '#1f2937', margin: '4px 0 0 0', letterSpacing: '-0.02em' }}>
+                  Mijn KIES-overzicht
+                </h1>
               </div>
-              <div className="text-right">
-                {naam && <p className="font-semibold">{naam}</p>}
-                <p className="text-sm text-white/80">{new Date().toLocaleDateString('nl-NL')}</p>
+              <div style={{ textAlign: 'right' }}>
+                {naam.trim() && (
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2937', margin: 0 }}>{naam.trim()}</p>
+                )}
+                <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>
+                  {niveauLabel} · {new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
               </div>
             </div>
-          </div>
 
-          <div className="p-6 print:p-4 space-y-4 print:space-y-3">
-            {/* K - Kiezen */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
+            {/* HERO — Persona */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 24,
+                alignItems: 'center',
+                padding: '20px 22px',
+                background: 'linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%)',
+                border: '1px solid #e9d5ff',
+                borderRadius: 18,
+                marginBottom: 28,
+              }}
+            >
+              {/* Persona portret */}
+              <div style={{ flexShrink: 0 }}>
+                {persona ? (
+                  <div
+                    style={{
+                      width: 140,
+                      height: 140,
+                      borderRadius: 18,
+                      overflow: 'hidden',
+                      border: '4px solid #a15df5',
+                      boxShadow: '0 6px 16px rgba(161, 93, 245, 0.2)',
+                      backgroundColor: '#f3e8ff',
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={persona.imageFile}
+                      alt={persona.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      crossOrigin="anonymous"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: 140,
+                      height: 140,
+                      borderRadius: 18,
+                      backgroundColor: '#f3e8ff',
+                      border: '4px solid #a15df5',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Bot style={{ width: 64, height: 64, color: '#7c3aed' }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Persona tekst */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+                  Jouw KIES-profiel
+                </p>
+                <h2 style={{ fontSize: 26, fontWeight: 800, color: '#1f2937', margin: '4px 0 8px 0', letterSpacing: '-0.01em' }}>
+                  {persona ? persona.name : 'Nog geen profiel'}
+                </h2>
+                <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.55, margin: 0 }}>
+                  {personaDescription ?? 'Maak K-Kiezen af om je persoonlijk profiel te ontdekken.'}
+                </p>
+              </div>
+            </div>
+
+            {/* === K - Kiezen === */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: kiesKleuren.kiezen }}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    backgroundColor: kiesKleuren.kiezen,
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 16,
+                    fontWeight: 800,
+                  }}
                 >
                   K
                 </div>
-                <h2 className="font-semibold text-gray-900">Kiezen: Wanneer gebruik je AI?</h2>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1f2937', margin: 0 }}>
+                  Kiezen — wat jij koos
+                </h3>
               </div>
-              {/* 3 aanpakken */}
-              <div className="grid grid-cols-3 gap-2 mb-2">
-                {drieAanpakken.map((a) => (
-                  <div key={a.naam} className="bg-gray-50 rounded-lg p-2 print:p-1 text-center">
-                    <div className="text-lg print:text-base">{a.emoji}</div>
-                    <div className="text-xs font-medium text-gray-900">{a.naam}</div>
-                    <div className="text-[10px] text-gray-500">{a.beschrijving}</div>
+
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 14,
+                  padding: '16px 18px',
+                  borderLeft: `5px solid ${kiesKleuren.kiezen}`,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                }}
+              >
+                {/* K1: rollen die je probeerde */}
+                {k1Tried.length > 0 ? (
+                  <div style={{ marginBottom: opdrachtTitel ? 16 : 0 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px 0' }}>
+                      AI-rollen die jij hebt geprobeerd
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {[...triedSamen, ...triedAiDoet].map(id => {
+                        const role = findRoleById(id)
+                        if (!role) return null
+                        return (
+                          <span
+                            key={id}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              backgroundColor: '#f3e8ff',
+                              color: '#6b21a8',
+                              padding: '4px 10px',
+                              borderRadius: 999,
+                              border: '1px solid #d8b4fe',
+                            }}
+                          >
+                            <span>{role.emoji}</span> {role.titel}
+                          </span>
+                        )
+                      })}
+                    </div>
                   </div>
-                ))}
-              </div>
-              {/* 8 AI-rollen */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-blue-50 rounded-lg p-2 border border-blue-100">
-                  <p className="text-[10px] font-medium text-blue-800 mb-1">🤝 AI helpt mij:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {aiRollen.helpt.map((r) => (
-                      <span key={r.naam} className="text-[10px] bg-white rounded px-1.5 py-0.5 border">
-                        {r.emoji} {r.naam}
-                      </span>
-                    ))}
+                ) : null}
+
+                {/* K2: opdracht + stappen-aanpak */}
+                {opdrachtTitel ? (
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px 0' }}>
+                      Jouw opdracht in K2
+                    </p>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: '#1f2937', margin: '0 0 10px 0' }}>
+                      {opdrachtTitel}
+                    </p>
+                    {stappenIngevuld.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {stappenIngevuld.map((stap, i) => (
+                          <div
+                            key={stap.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10,
+                              padding: '8px 10px',
+                              backgroundColor: '#faf5ff',
+                              borderRadius: 8,
+                              border: '1px solid #e9d5ff',
+                            }}
+                          >
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', minWidth: 22 }}>{i + 1}.</span>
+                            <span style={{ fontSize: 13, color: '#1f2937', flex: 1, minWidth: 0 }}>{stap.titel}</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                              {stap.approach?.type === 'zelf' && (
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#374151', backgroundColor: '#e5e7eb', padding: '3px 8px', borderRadius: 999 }}>
+                                  ✋ Zelf
+                                </span>
+                              )}
+                              {stap.approach?.type === 'roles' && stap.approach.roles.map(r => (
+                                <span
+                                  key={r.id}
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: '#6b21a8',
+                                    backgroundColor: '#f3e8ff',
+                                    padding: '3px 8px',
+                                    borderRadius: 999,
+                                    border: '1px solid #d8b4fe',
+                                  }}
+                                >
+                                  {r.emoji} {r.name}
+                                </span>
+                              ))}
+                              {!stap.approach && (
+                                <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className="bg-purple-50 rounded-lg p-2 border border-purple-100">
-                  <p className="text-[10px] font-medium text-purple-800 mb-1">🤖 AI doet het:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {aiRollen.doet.map((r) => (
-                      <span key={r.naam} className="text-[10px] bg-white rounded px-1.5 py-0.5 border">
-                        {r.emoji} {r.naam}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                ) : null}
+
+                {!opdrachtTitel && k1Tried.length === 0 && (
+                  <p style={{ fontSize: 13, color: '#9ca3af', margin: 0, fontStyle: 'italic' }}>
+                    Nog geen K-werk gevonden.
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* I - Instrueren */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
+            {/* === I - Instrueren === */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: kiesKleuren.instrueren }}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    backgroundColor: kiesKleuren.instrueren,
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 16,
+                    fontWeight: 800,
+                  }}
                 >
                   I
                 </div>
-                <h2 className="font-semibold text-gray-900">Instrueren: Hoe vraag je het?</h2>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1f2937', margin: 0 }}>
+                  Instrueren — vier delen van een sterke prompt
+                </h3>
               </div>
-              <div className="bg-gray-50 rounded-lg p-2">
-                <div className="grid grid-cols-4 gap-1">
-                  {promptOnderdelen.map((o) => (
-                    <div key={o.nummer} className="bg-white rounded p-1.5 border text-center">
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold mb-0.5">
-                        {o.nummer}
-                      </span>
-                      <div className="text-xs font-medium text-gray-900">{o.titel}</div>
-                      <div className="text-[10px] text-gray-500">{o.vraag}</div>
-                      {!o.verplicht && <div className="text-[9px] text-gray-400">(optioneel)</div>}
-                    </div>
-                  ))}
-                </div>
+
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 14,
+                  padding: '14px 18px',
+                  borderLeft: `5px solid ${kiesKleuren.instrueren}`,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 10,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                }}
+              >
+                {promptOnderdelen.map(o => (
+                  <div key={o.nummer} style={{ textAlign: 'center', padding: '8px 4px' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 28,
+                        height: 28,
+                        borderRadius: 999,
+                        backgroundColor: kiesKleuren.instrueren,
+                        color: 'white',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        marginBottom: 6,
+                      }}
+                    >
+                      {o.nummer}
+                    </span>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2937', margin: 0 }}>{o.titel}</p>
+                    <p style={{ fontSize: 11, color: '#6b7280', margin: '2px 0 0 0' }}>{o.vraag}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* E - Evalueren */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
+            {/* === E - Evalueren === */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: kiesKleuren.evalueren }}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    backgroundColor: kiesKleuren.evalueren,
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 16,
+                    fontWeight: 800,
+                  }}
                 >
                   E
                 </div>
-                <h2 className="font-semibold text-gray-900">Evalueren: Klopt het?</h2>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1f2937', margin: 0 }}>
+                  Evalueren — Mens-AI-Mens checken
+                </h3>
               </div>
-              {/* Mens-AI-Mens */}
-              <div className="flex gap-1 mb-2">
-                <div className="flex-1 bg-green-50 rounded-lg p-1.5 text-center border border-green-200">
-                  <div className="text-base">🧑</div>
-                  <div className="text-[10px] font-medium text-gray-900">1. Begrijpen</div>
+
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 14,
+                  padding: '14px 18px',
+                  borderLeft: `5px solid ${kiesKleuren.evalueren}`,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                }}
+              >
+                {/* Mens-AI-Mens flow */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 14 }}>
+                  {eMensAiMens.map((step, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <div style={{ flex: 1, textAlign: 'center', padding: '10px 6px', backgroundColor: '#faf5ff', borderRadius: 10, border: '1px solid #e9d5ff' }}>
+                        <div style={{ fontSize: 22 }}>{step.icon}</div>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: '#1f2937', margin: '2px 0 0 0' }}>{step.label}</p>
+                        <p style={{ fontSize: 10, color: '#6b7280', margin: '2px 0 0 0' }}>{step.sub}</p>
+                      </div>
+                      {i < eMensAiMens.length - 1 && (
+                        <span style={{ fontSize: 18, color: '#a15df5', flexShrink: 0 }}>→</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div className="flex-1 bg-blue-50 rounded-lg p-1.5 text-center border border-blue-200">
-                  <div className="text-base">🤖</div>
-                  <div className="text-[10px] font-medium text-gray-900">2. Checken</div>
-                </div>
-                <div className="flex-1 bg-purple-50 rounded-lg p-1.5 text-center border border-purple-200">
-                  <div className="text-base">🧑</div>
-                  <div className="text-[10px] font-medium text-gray-900">3. Aanpassen</div>
-                </div>
-              </div>
-              {/* Valkuilen */}
-              <div className="bg-amber-50 rounded-lg p-2 border border-amber-100">
-                <p className="text-[10px] font-medium text-amber-800 mb-1">Let op deze valkuilen:</p>
-                <div className="grid grid-cols-3 gap-1">
-                  {aiValkuilen.map((v) => (
-                    <div key={v.naam} className="bg-white rounded p-1.5 border text-center">
-                      <div className="text-sm">{v.emoji}</div>
-                      <div className="text-[10px] font-medium text-gray-900">{v.naam}</div>
-                      <div className="text-[9px] text-gray-500">{v.tip}</div>
+
+                {/* Drie valkuilen */}
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px 0' }}>
+                  Drie valkuilen die jij leert herkennen
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                  {eValkuilen.map(v => (
+                    <div
+                      key={v.naam}
+                      style={{
+                        padding: '10px 12px',
+                        backgroundColor: '#fffbeb',
+                        borderRadius: 10,
+                        border: '1px solid #fcd34d',
+                      }}
+                    >
+                      <div style={{ fontSize: 18, marginBottom: 4 }}>{v.emoji}</div>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: '#1f2937', margin: 0 }}>{v.naam}</p>
+                      <p style={{ fontSize: 11, color: '#6b7280', margin: '2px 0 0 0', lineHeight: 1.4 }}>{v.tip}</p>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* S - Spelregels */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
+            {/* === S - Spelregels — eigen conclusies === */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: kiesKleuren.spelregels }}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    backgroundColor: kiesKleuren.spelregels,
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 16,
+                    fontWeight: 800,
+                  }}
                 >
                   S
                 </div>
-                <h2 className="font-semibold text-gray-900">Spelregels: Wat mag?</h2>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1f2937', margin: 0 }}>
+                  Spelregels — jouw conclusies
+                </h3>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-purple-50 rounded-lg p-2 border border-purple-200">
-                  <p className="text-[10px] font-medium text-purple-800 mb-1">🔒 Veilig</p>
-                  <ul className="text-[9px] text-gray-600 space-y-0.5">
-                    <li>• Geen persoonlijke gegevens delen</li>
-                    <li>• Gebruik goedgekeurde tools</li>
-                  </ul>
-                </div>
-                <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
-                  <p className="text-[10px] font-medium text-amber-800 mb-1">⚖️ Eerlijk</p>
-                  <ul className="text-[9px] text-gray-600 space-y-0.5">
-                    <li>• Meld AI-gebruik</li>
-                    <li>• Controleer altijd de output</li>
-                  </ul>
-                </div>
-                <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                  <p className="text-[10px] font-medium text-green-800 mb-1">🧠 Bewust</p>
-                  <ul className="text-[9px] text-gray-600 space-y-0.5">
-                    <li>• AI kan fouten maken</li>
-                    <li>• Gebruik AI doelgericht</li>
-                  </ul>
-                </div>
+
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 14,
+                  padding: '14px 18px',
+                  borderLeft: `5px solid ${kiesKleuren.spelregels}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                }}
+              >
+                {themasInVolgorde.map(thema => {
+                  const c = sCasussen[thema]
+                  const k = themaKleuren[thema]
+                  const eigenConclusie = sConclusies?.[thema]?.trim()
+                  return (
+                    <div
+                      key={thema}
+                      style={{
+                        backgroundColor: k.soft,
+                        border: `1px solid ${k.border}`,
+                        borderRadius: 10,
+                        padding: '10px 14px',
+                        display: 'flex',
+                        gap: 12,
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <div style={{ fontSize: 22, flexShrink: 0 }}>{c.emoji}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: k.text, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '2px 0 4px 0' }}>
+                          {c.themaLabel}
+                        </p>
+                        <p style={{ fontSize: 13, color: '#1f2937', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
+                          {eigenConclusie && eigenConclusie.length > 0
+                            ? eigenConclusie
+                            : <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Nog geen conclusie ingevuld.</span>
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
             {/* Footer */}
-            <div className="text-center pt-2 border-t print:pt-1">
-              <p className="text-xs text-gray-400">
-                KIES Leeromgeving • aivoordocenten.nl
-              </p>
+            <div
+              style={{
+                borderTop: '1px solid #c4b5fd',
+                paddingTop: 14,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: 11,
+                color: '#7c3aed',
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>AI voor Docenten · KIES Leeromgeving</span>
+              <span>aivoordocenten.nl</span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Print styles */}
-      <style jsx global>{`
-        @media print {
-          body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }

@@ -110,7 +110,11 @@ export default function KComplete() {
       })
       if (!res.ok) throw new Error('API error')
       const data = await res.json()
-      setAiDescription(data.description?.trim() || persona.baseDescription)
+      const desc = data.description?.trim() || persona.baseDescription
+      setAiDescription(desc)
+      try {
+        localStorage.setItem('kies-persona-description', desc)
+      } catch { /* graceful fail */ }
     } catch {
       setAiDescription(persona.baseDescription)
     }
