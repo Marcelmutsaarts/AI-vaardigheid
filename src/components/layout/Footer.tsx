@@ -22,12 +22,6 @@ export function Footer() {
               Over KIES
             </Link>
             <Link
-              href="/docent/login"
-              className="text-sm text-gray-600 hover:text-primary transition-colors"
-            >
-              Voor docenten
-            </Link>
-            <Link
               href="https://aivoordocenten.nl"
               target="_blank"
               rel="noopener noreferrer"

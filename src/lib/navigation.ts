@@ -32,6 +32,7 @@ export const kiesStructuur: KiesLetter[] = [
     description: 'Hoe vraag je het goed?',
     color: '#9959ea', href: '/leerpad/instrueren',
     subSteps: [
+      { id: 'intro', title: 'Waarom prompten?', description: 'Snap waarom goede prompts ertoe doen', href: '/leerpad/instrueren/intro' },
       { id: 'i1', title: 'Hoe bouw je een prompt?', description: 'Leer de onderdelen van een goede prompt', href: '/leerpad/instrueren/i1' },
       { id: 'i2', title: 'Oefenen met prompts', description: 'Bouw zelf prompts en test ze uit', href: '/leerpad/instrueren/i2' },
     ]

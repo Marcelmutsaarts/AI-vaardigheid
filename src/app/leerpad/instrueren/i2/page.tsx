@@ -84,7 +84,7 @@ export default function I2Page() {
   // ── Complete ──────────────────────────────────────────────────────────────
   const handleComplete = () => {
     updateProgress('instrueren', 'i2', true)
-    router.push('/leerpad/evalueren')
+    router.push('/leerpad/evalueren/intro')
   }
 
   // ── Render ────────────────────────────────────────────────────────────────

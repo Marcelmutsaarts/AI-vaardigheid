@@ -22,6 +22,7 @@ import {
 } from '@/lib/kiezen-content'
 import { getNiveauGroep } from '@/lib/transition-utils'
 import ProgressStepper from '@/components/navigation/ProgressStepper'
+import { Markdown } from '@/components/ui/markdown'
 
 interface Stap {
   id: string
@@ -189,7 +190,7 @@ export default function K2Page() {
     }
     setChatMessages([{
       role: 'assistant',
-      content: `Je hebt gekozen voor "${opdracht.titel}". Welke stappen denk je dat je moet zetten om dit te maken? Typ je ideeën, of vraag mij om suggesties!`
+      content: `Je hebt gekozen voor **"${opdracht.titel}"**. Welke stappen denk je zelf dat je nodig hebt? Schrijf wat je bedenkt op — als je vastloopt, stel ik je een vraag om verder te komen. Ik geef je geen kant-en-klare lijst, want dan denk je niet meer zelf na.`
     }])
     // Auto-scroll and focus on mobile
     setTimeout(() => {
@@ -335,8 +336,18 @@ export default function K2Page() {
             niveau: niveau.schoolType,
             leerjaar: niveau.leerjaar,
             currentModule: 'kiezen',
-            moduleContext: `Opdracht: ${gekozenOpdracht?.titel}.${bestaandeStappen}\n\nDe leerling bepaalt zelf welke stappen nodig zijn. Help met suggesties voor stappen die nog missen. Geef maximaal 3-4 concrete suggesties per keer zoals "Onderwerp kiezen", "Informatie verzamelen", "Structuur maken". Houd het kort en praktisch. Als er al stappen zijn, bouw daarop voort.`,
-            aiMode: 'helpt',
+            moduleContext: `Opdracht waar de leerling aan werkt: "${gekozenOpdracht?.titel}".${bestaandeStappen}
+
+JOUW ROL is strikt SOCRATISCH (heel belangrijk):
+- Geef NOOIT zelf concrete stappen of een lijstje (dus geen "Onderwerp kiezen", "Bronnen zoeken", "Structuur maken" o.i.d.).
+- Stel ALLEEN vragen die de leerling zelf laten nadenken, of geef hints richting een denkrichting.
+- Geef GEEN voorbeelden van stappen, ook niet "bijvoorbeeld...".
+- Als de leerling om suggesties of een lijstje vraagt: leg vriendelijk uit dat je geen stappen voor de leerling bedenkt, en stel een vraag terug die helpt.
+- Mag wel: vragen als "Wat moet er klaar zijn voordat je kunt beginnen?", "Wat denk je dat de eerste hobbel is?", "Welk deel lijkt je het lastigst?".
+- Houd elk antwoord kort: 1-3 zinnen, maximaal 1 vraag tegelijk.
+- Bouw voort op wat de leerling al heeft ingevuld — vraag bijvoorbeeld of er iets ontbreekt vóór of ná die stap.
+
+Werk samen alsof je naast de leerling zit, niet alsof je het werk overneemt.`,
             conversationHistory: chatMessages
           }
         })
@@ -527,18 +538,18 @@ export default function K2Page() {
                       onClick={() => {
                         const ingevuld = stapVelden.filter(v => v.trim())
                         const stappenInfo = ingevuld.length > 0
-                          ? `\n\nJe hebt al deze stappen:\n${ingevuld.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nWil je meer stappen toevoegen of heb je andere vragen?`
-                          : ''
+                          ? `\n\nJe hebt al deze stappen ingevuld:\n${ingevuld.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nWaar loop je vast? Beschrijf wat je probeert te bedenken — ik help je door de juiste vragen te stellen.`
+                          : ' Welke stappen denk je zelf dat je nodig hebt? Schrijf wat je bedenkt op — als je vastloopt, stel ik je een vraag om verder te komen. Ik geef je geen kant-en-klare lijst.'
                         setChatMessages([{
                           role: 'assistant',
-                          content: `Je werkt aan "${gekozenOpdracht?.titel}".${stappenInfo || ' Welke stappen denk je dat je moet zetten? Typ je ideeën, of vraag mij om suggesties!'}`
+                          content: `Je werkt aan **"${gekozenOpdracht?.titel}"**.${stappenInfo}`
                         }])
                         setChatOpen(true)
                       }}
                       className="w-full bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center gap-3 transition-colors mb-4"
                     >
                       <MessageCircle className="h-5 w-5 text-primary" />
-                      <span className="text-sm font-medium text-primary">Hulp nodig? Vraag de AI om suggesties</span>
+                      <span className="text-sm font-medium text-primary">Vastgelopen? Een vraag aan je coach</span>
                     </button>
 
                     {/* Verder knop */}
@@ -599,17 +610,19 @@ export default function K2Page() {
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {chatMessages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
-                      msg.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
+                      msg.role === 'user'
+                        ? 'bg-primary text-white whitespace-pre-wrap'
+                        : 'bg-gray-100 text-gray-700'
                     }`}>
-                      {msg.content}
+                      {msg.role === 'assistant' ? <Markdown>{msg.content}</Markdown> : msg.content}
                     </div>
                   </div>
                 ))}
                 {chatLoading && chatStreamingContent && (
                   <div className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl px-4 py-2 text-sm bg-gray-100 text-gray-700 whitespace-pre-wrap">
-                      {chatStreamingContent}
+                    <div className="max-w-[85%] rounded-2xl px-4 py-2 text-sm bg-gray-100 text-gray-700">
+                      <Markdown>{chatStreamingContent}</Markdown>
                     </div>
                   </div>
                 )}
@@ -629,7 +642,7 @@ export default function K2Page() {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
-                    placeholder="Vraag om suggesties..."
+                    placeholder="Loop je vast? Beschrijf waar..."
                     className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     disabled={chatLoading}
                   />
@@ -638,7 +651,7 @@ export default function K2Page() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-400 mt-2 text-center">
-                  Tip: Vraag &quot;Geef me suggesties voor stappen&quot;
+                  De coach geeft geen kant-en-klare stappen, maar helpt jou denken.
                 </p>
               </div>
             </div>

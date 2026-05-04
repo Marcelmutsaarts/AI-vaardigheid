@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { ArrowRight, BookOpen, MessageSquare, CheckCircle, Shield } from 'lucide-react'
+import { isTransitionSeen } from '@/lib/transition-utils'
 
 export default function Home() {
   const router = useRouter()
@@ -15,12 +16,12 @@ export default function Home() {
   const [selectedType, setSelectedType] = useState<SchoolType | null>(null)
   const [selectedJaar, setSelectedJaar] = useState<number | null>(null)
 
-  // If user already has niveau set, redirect to dashboard
+  // If user already has niveau set, redirect to welkom (first time) or dashboard
   // MBO/HBO hebben geen leerjaar, dus alleen schoolType checken voor die gevallen
   if (niveau.schoolType) {
     const needsLeerjaar = niveau.schoolType !== 'mbo' && niveau.schoolType !== 'hbo'
     if (!needsLeerjaar || niveau.leerjaar) {
-      router.push('/dashboard')
+      router.push(isTransitionSeen('welkom') ? '/dashboard' : '/welkom')
       return null
     }
   }
@@ -47,7 +48,7 @@ export default function Home() {
       // MBO/HBO hebben geen leerjaar, anderen wel
       if (needsLeerjaar && !selectedJaar) return
       setNiveau(selectedType, selectedJaar)
-      router.push('/dashboard')
+      router.push(isTransitionSeen('welkom') ? '/dashboard' : '/welkom')
     }
   }
 
@@ -106,12 +107,12 @@ export default function Home() {
               <Card className="max-w-xl mx-auto">
                 <CardContent className="p-8">
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                    Op welke school zit je?
+                    Op welk niveau zit je?
                   </h2>
 
                   {/* School type selection */}
                   <div className="flex justify-center gap-3 mb-8 flex-wrap">
-                    {(['vmbo', 'havo', 'vwo'] as const).map((type) => (
+                    {(['vmbo', 'havo', 'vwo', 'mbo', 'hbo'] as const).map((type) => (
                       <button
                         key={type}
                         onClick={() => {

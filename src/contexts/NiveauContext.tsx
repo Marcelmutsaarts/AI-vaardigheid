@@ -11,7 +11,7 @@ export interface NiveauSettings {
 
 export interface Progress {
   kiezen: { k1: boolean; k2: boolean }
-  instrueren: { i1: boolean; i2: boolean }
+  instrueren: { intro: boolean; i1: boolean; i2: boolean }
   evalueren: { e1: boolean; e2: boolean }
   spelregels: { s1: boolean; s2: boolean; s3: boolean }
 }
@@ -28,7 +28,7 @@ interface NiveauContextType {
 
 const defaultProgress: Progress = {
   kiezen: { k1: false, k2: false },
-  instrueren: { i1: false, i2: false },
+  instrueren: { intro: false, i1: false, i2: false },
   evalueren: { e1: false, e2: false },
   spelregels: { s1: false, s2: false, s3: false },
 }
@@ -90,17 +90,17 @@ export function NiveauProvider({ children }: { children: ReactNode }) {
   }
 
   const updateProgress = (kiesLetter: keyof Progress, module: string, completed: boolean) => {
-    // Eerst synchroon naar localStorage schrijven
-    const newProgress = {
-      ...progress,
-      [kiesLetter]: {
-        ...progress[kiesLetter],
-        [module]: completed,
-      },
-    }
-    localStorage.setItem('kies-progress', JSON.stringify(newProgress))
-    // Dan pas state updaten
-    setProgress(newProgress)
+    setProgress(prev => {
+      const next = {
+        ...prev,
+        [kiesLetter]: {
+          ...prev[kiesLetter],
+          [module]: completed,
+        },
+      }
+      localStorage.setItem('kies-progress', JSON.stringify(next))
+      return next
+    })
   }
 
   const resetProgress = () => {
