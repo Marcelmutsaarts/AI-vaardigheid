@@ -62,11 +62,10 @@ export function getIntroText(schoolType: string): string {
   return texts[groep]
 }
 
-// The example prompt per level - each returns an object with the 4 parts as strings
+// The example prompt per level - each returns an object with the 4 parts as strings.
+// Vijf varianten: één per schoolType (vmbo, havo, vwo, mbo, hbo).
 export function getPromptTexts(schoolType: string): Record<string, string> {
-  const groep = getNiveauGroep(schoolType)
-
-  const prompts: Record<NiveauGroep, Record<string, string>> = {
+  const prompts: Record<string, Record<string, string>> = {
     vmbo: {
       rol: 'Je bent een aardige leraar Nederlands die dingen simpel uitlegt.',
       context: ' Ik zit in 3 VMBO en ik moet een samenvatting schrijven over het boek dat we lezen. Het moet 1 A4 zijn.',
@@ -83,11 +82,23 @@ export function getPromptTexts(schoolType: string): Record<string, string> {
       rol: 'Je bent een kritische universitaire docent academisch schrijven.',
       context: ' Ik zit in 5 VWO en werk aan een profielwerkstuk over de invloed van AI op arbeidsmarkten. De scriptie moet 3000-4000 woorden zijn met minimaal 5 wetenschappelijke bronnen.',
       instructies: ' Analyseer mijn onderzoeksvraag en hypothese. Beoordeel de haalbaarheid, de afbakening en de wetenschappelijke relevantie.',
-      voorbeeld: ' Geef je analyse in deze structuur: 1. Sterke punten 2. Zwakke punten 3. Concrete verbetersugesties (max 5)',
+      voorbeeld: ' Geef je analyse in deze structuur: 1. Sterke punten 2. Zwakke punten 3. Concrete verbetersuggesties (max 5)',
+    },
+    mbo: {
+      rol: 'Je bent een ervaren stagebegeleider die praktisch advies geeft.',
+      context: ' Ik loop stage en heb morgen een voortgangsgesprek met mijn praktijkbegeleider. Ik weet niet goed hoe ik begin en wat ik allemaal moet bespreken.',
+      instructies: ' Geef me een opzet voor het gesprek. Welke onderwerpen zijn belangrijk, in welke volgorde, en wat kan ik per onderwerp zeggen?',
+      voorbeeld: ' Zet het in dit format: 1. Onderwerp: ... — Wat zeg ik: ... 2. Onderwerp: ... — Wat zeg ik: ...',
+    },
+    hbo: {
+      rol: 'Je bent een ervaren projectleider die opbouwende feedback geeft.',
+      context: ' Ik volg een hbo-opleiding bedrijfskunde en werk aan een adviesrapport voor een mkb-bedrijf over duurzame inkoop. Het rapport is circa 5000 woorden en moet een onderbouwd advies bevatten.',
+      instructies: ' Beoordeel mijn probleemstelling en advies. Let op de logica, de onderbouwing en de uitvoerbaarheid. Geef per onderdeel concrete verbeterpunten.',
+      voorbeeld: ' Structureer in: 1. Probleemstelling — feedback 2. Advies — feedback 3. Onderbouwing — feedback 4. Top-3 verbeterpunten',
     },
   }
 
-  return prompts[groep]
+  return prompts[schoolType] ?? prompts.havo
 }
 
 // Explanation per part per level (shown in right column)
